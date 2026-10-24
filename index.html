@@ -1,0 +1,983 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Lær at løse Rubiks terning i 9 små trin.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Terningskolen">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Terningskolen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@600&display=swap">
+<style>
+/* Layout: trin-strimmel øverst, derunder terning-scene | lektionstekst, som stables på smal skærm */
+:root{
+  --bg:#eaeef2; --surface:#ffffff; --surface-2:#f4f6f9; --ink:#141b24; --muted:#56616f; --line:#d3dae2;
+  --accent:#0046ad; --accent-ink:#ffffff; --star:#f2a900; --good:#0a8a4a; --stage:#dfe5ec;
+  --c-elev:#0046ad; --focus:#e0158a; --bad:#c62828;
+  --f-display:"Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  --f-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0e1319; --surface:#17202a; --surface-2:#1d2733; --ink:#e8edf2; --muted:#9ba7b5; --line:#2b3644;
+  --accent:#6b9bff; --accent-ink:#0b1220; --star:#ffc634; --good:#3ccf86; --stage:#121a23;
+  --c-elev:#6b9bff; --bad:#ff7070; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0e1319; --surface:#17202a; --surface-2:#1d2733; --ink:#e8edf2; --muted:#9ba7b5; --line:#2b3644;
+  --accent:#6b9bff; --accent-ink:#0b1220; --star:#ffc634; --good:#3ccf86; --stage:#121a23;
+  --c-elev:#6b9bff; --bad:#ff7070; color-scheme:dark }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 40px}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:focus-visible,.chip:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{font-family:var(--f-display);line-height:1.1;margin:0;text-wrap:balance}
+
+/* top bar */
+.bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;background:none;border:0;padding:4px 0}
+.brand h1{font-size:28px;font-weight:800;letter-spacing:-.01em}
+.bar .spacer{flex:1}
+.who{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 14px 6px 6px;min-height:48px}
+.who small{color:var(--muted)}
+.avatar{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-family:var(--f-display);font-weight:800;color:#fff;font-size:20px;flex:none}
+
+/* home */
+.hero{display:flex;flex-direction:column;gap:6px;padding-top:8px}
+.hero h2{font-size:clamp(30px,5vw,44px);font-weight:800}
+.hero p{margin:0;color:var(--muted);max-width:62ch}
+.profiles{display:grid;grid-template-columns:minmax(0,560px);gap:16px}
+.pcard{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px;text-align:left;transition:transform .15s}
+.pcard:hover{transform:translateY(-2px)}
+.pcard .top{display:flex;align-items:center;gap:14px}
+.pcard .avatar{width:56px;height:56px;font-size:30px;border-radius:14px}
+.pcard h3{font-size:30px;font-weight:800}
+.pcard .age{color:var(--muted);font-size:15px}
+.trail{display:grid;grid-template-columns:repeat(9,1fr);gap:5px}
+.trail span{aspect-ratio:1;border-radius:5px;background:var(--surface-2);border:1px solid var(--line)}
+.pstats{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:15px;font-variant-numeric:tabular-nums}
+.pstats b{color:var(--ink)}
+.pcard .go{align-self:flex-start;background:var(--ink);color:var(--bg);border:0;border-radius:999px;padding:12px 20px;font-weight:700;min-height:48px}
+.badge{display:inline-flex;align-items:center;gap:6px;font-weight:700;color:var(--star)}
+.howto{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:20px}
+.howto h3{font-size:20px;margin-bottom:4px}
+.howto p{margin:0;color:var(--muted);font-size:16px}
+
+/* step strip */
+.steps{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:thin}
+.chip{flex:none;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 12px;min-height:48px;white-space:nowrap}
+.chip .n{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.chip[aria-current="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip[aria-current="true"] .n{color:inherit;opacity:.7}
+.star{width:18px;height:18px;flex:none}
+
+/* lesson */
+.lesson{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:860px){.lesson{grid-template-columns:minmax(0,1fr)}}
+.stage{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:12px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.canvasbox{position:relative;width:100%;max-width:560px;margin:0 auto;aspect-ratio:1;background:radial-gradient(circle at 50% 45%,var(--surface-2),var(--stage));border-radius:16px;touch-action:none;cursor:grab}
+.canvasbox canvas{width:100%!important;height:100%!important;display:block}
+.hold{position:absolute;left:10px;top:10px;font-size:13px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 10px;color:var(--muted)}
+.viewbtn{position:absolute;right:10px;top:10px;font-size:13px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 10px;min-height:32px}
+.draghint{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-size:13px;color:var(--muted);pointer-events:none}
+.nowmove{display:flex;align-items:center;gap:14px;justify-content:center;min-height:64px;padding:6px;border-radius:14px;background:var(--surface-2)}
+.nowmove svg{width:52px;height:52px}
+.nowmove .w{font-family:var(--f-display);font-size:26px;font-weight:800}
+.nowmove .k{font-family:var(--f-mono);color:var(--muted)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 16px;min-height:52px;font-weight:700}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:disabled{opacity:.4;cursor:default}
+.btn svg{width:20px;height:20px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.seg button{border:0;background:var(--surface);padding:10px 14px;min-height:52px;font-weight:700}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+
+.tiles{display:flex;flex-direction:column;gap:10px}
+.group{display:flex;flex-direction:column;gap:6px}
+.group .gl{font-size:13px;color:var(--muted);font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.trow{display:flex;flex-wrap:wrap;gap:6px}
+.tile{display:flex;flex-direction:column;align-items:center;gap:2px;width:78px;padding:8px 4px;border-radius:12px;background:var(--surface-2);border:2px solid transparent;font-size:12px;line-height:1.2;text-align:center}
+.tile svg{width:34px;height:34px}
+.tile .k{font-family:var(--f-mono);font-size:14px}
+.tile.done{opacity:.45}
+.tile.cur{border-color:var(--accent);background:var(--surface)}
+
+.text{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.text .eyebrow{font-family:var(--f-mono);font-size:13px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.text h2{font-size:clamp(28px,4vw,38px);font-weight:800}
+.text ol,.text ul{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:8px;max-width:62ch}
+.text p{margin:0;max-width:62ch}
+.tip{background:var(--surface-2);border-radius:12px;padding:12px 14px;font-size:16px}
+.tip b{font-family:var(--f-display);font-size:18px}
+.alg{font-family:var(--f-mono);background:var(--surface-2);border-radius:6px;padding:1px 6px;white-space:nowrap}
+.cases{display:flex;flex-direction:column;gap:8px}
+.cases h3{font-size:18px}
+.casebtns{display:flex;flex-wrap:wrap;gap:8px}
+.casebtns button{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 14px;min-height:48px;font-weight:700;text-align:left}
+.casebtns button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.master{display:flex;align-items:center;gap:12px;justify-content:center;border:2px dashed var(--line);background:none;border-radius:16px;padding:14px 18px;min-height:64px;font-family:var(--f-display);font-size:22px;font-weight:800}
+.master svg{width:30px;height:30px}
+.master[aria-pressed="true"]{border-style:solid;border-color:var(--star);background:color-mix(in srgb,var(--star) 14%,transparent)}
+.master small{display:block;font-family:var(--f-body);font-weight:400;font-size:14px;color:var(--muted)}
+.nav{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.pad{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:6px}
+.pad .tile{width:auto;border:1px solid var(--line);background:var(--surface)}
+.filters{display:flex;flex-wrap:wrap;gap:8px}
+.solves{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--surface-2);border-radius:12px;padding:10px 14px}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:center;font-size:15px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.sw{display:inline-block;width:18px;height:18px;border-radius:4px}
+.sw.halo{background:var(--focus);box-shadow:0 0 0 3px color-mix(in srgb,var(--focus) 35%,transparent)}
+.sw.slot{border:3px solid var(--focus)}
+.casedesc{background:color-mix(in srgb,var(--focus) 10%,var(--surface));border-left:4px solid var(--focus);border-radius:8px;padding:10px 14px;font-size:16px}
+.chip.mine{border-style:dashed}
+.cubeic{width:20px;height:20px;flex:none}
+.mycard{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;background:var(--surface);border:2px dashed var(--line);border-radius:20px;padding:20px}
+.mycard h3{font-size:24px}
+.mycard p{margin:4px 0 0;color:var(--muted);max-width:60ch}
+.differ{display:flex;align-items:center;gap:12px;text-align:left;border:1px solid var(--line);background:var(--surface-2);border-radius:14px;padding:12px 16px;min-height:60px}
+.differ .cubeic{width:30px;height:30px}
+.differ small{display:block;color:var(--muted);font-size:14px}
+.facetabs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+@media (max-width:520px){.facetabs{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.facetab{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;border:1px solid var(--line);background:var(--surface);border-radius:12px;font-size:12px;min-height:48px;min-width:0}
+.facetab svg{width:40px;height:40px}
+.facetab[aria-current="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.facetab.hasbad{border-color:var(--bad)}
+.facehead{display:flex;flex-direction:column;gap:4px}
+.facehead h3{font-size:24px}
+.paintgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:min(100%,280px);padding:10px;background:#16181d;border-radius:16px}
+.cell{aspect-ratio:1;border-radius:10px;border:2px dashed #6b717a;background:#2a2e35;min-height:48px}
+.cell.filled{border:2px solid rgba(0,0,0,.2)}
+.cell.center{cursor:default;box-shadow:inset 0 0 0 3px rgba(0,0,0,.18)}
+.cell.bad{outline:4px solid var(--bad);outline-offset:-1px}
+.palette{display:flex;flex-wrap:wrap;gap:8px}
+.swatch{display:flex;flex-direction:column;align-items:center;gap:4px;border:2px solid var(--line);background:var(--surface);border-radius:14px;padding:6px 8px;min-width:58px}
+.swatch span{width:38px;height:38px;border-radius:8px;border:1px solid rgba(0,0,0,.25)}
+.swatch small{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.swatch small.over{color:var(--bad);font-weight:700}
+.swatch[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 2px var(--ink)}
+.controls.left{justify-content:flex-start}
+.muted{color:var(--muted);margin:0}
+.small{font-size:14px}
+.msg{border-radius:12px;padding:12px 14px;background:color-mix(in srgb,var(--bad) 10%,var(--surface));border-left:4px solid var(--bad)}
+.msg.ok{background:color-mix(in srgb,var(--good) 10%,var(--surface));border-left-color:var(--good)}
+.msg ul{margin:6px 0;padding-left:1.2em}
+.btn.big{min-height:60px;font-size:19px;justify-content:center}
+.chapters{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.chapters button{width:100%;display:flex;align-items:center;gap:12px;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:8px 12px;min-height:52px}
+.chapters .ci{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--surface-2);font-family:var(--f-mono);font-weight:700;flex:none}
+.chapters small{display:block;color:var(--muted)}
+.chapters .done{opacity:.6}
+.chapters .done .ci{background:var(--good);color:#fff}
+.chapters .now{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.foot{color:var(--muted);font-size:14px;text-align:center}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:700;z-index:20}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:30;width:100%;height:100%}
+.pop{animation:pop .5s ease}
+@keyframes pop{40%{transform:scale(1.25)}}
+@media (prefers-reduced-motion: reduce){.pop{animation:none}.pcard{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="bar">
+    <button class="brand" id="homeBtn" aria-label="Til forsiden">
+      <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><rect width="34" height="34" rx="7" fill="#1a1d23"/>
+        <g><rect x="3" y="3" width="8.6" height="8.6" rx="2" fill="#ffd500"/><rect x="12.7" y="3" width="8.6" height="8.6" rx="2" fill="#009b48"/><rect x="22.4" y="3" width="8.6" height="8.6" rx="2" fill="#ffd500"/>
+        <rect x="3" y="12.7" width="8.6" height="8.6" rx="2" fill="#b71234"/><rect x="12.7" y="12.7" width="8.6" height="8.6" rx="2" fill="#ffd500"/><rect x="22.4" y="12.7" width="8.6" height="8.6" rx="2" fill="#ff5800"/>
+        <rect x="3" y="22.4" width="8.6" height="8.6" rx="2" fill="#ffd500"/><rect x="12.7" y="22.4" width="8.6" height="8.6" rx="2" fill="#0046ad"/><rect x="22.4" y="22.4" width="8.6" height="8.6" rx="2" fill="#ffd500"/></g></svg>
+      <h1>Terningskolen</h1>
+    </button>
+    <div class="spacer"></div>
+    <div id="whoBox"></div>
+  </header>
+  <main id="app"></main>
+  <p class="foot" id="storeNote">Indlæser fremskridt …</p>
+</div>
+<canvas id="confetti" hidden></canvas>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ---------- Terning-logik ----------
+// x/y/z drejer hele terningen (lag = null)
+const MOVES={R:[0,1,-1],L:[0,-1,1],U:[1,1,-1],D:[1,-1,1],F:[2,1,-1],B:[2,-1,1],x:[0,null,-1],y:[1,null,-1],z:[2,null,-1]};
+const parseAlg=s=>s.trim()?s.trim().split(/\s+/):[];
+function moveInfo(m){const [axis,layer,dir]=MOVES[m[0]];const t=m.slice(1)==="'"?-1:m.slice(1)==="2"?2:1;return{axis,layer,quarter:t===2?2:dir*t};}
+const invertMove=m=>m.endsWith("2")?m:m.endsWith("'")?m[0]:m+"'";
+const invertAlg=a=>a.slice().reverse().map(invertMove);
+function rot(v,axis,q){q=((q%4)+4)%4;let[x,y,z]=v;for(let i=0;i<q;i++){if(axis===0)[y,z]=[-z,y];else if(axis===1)[z,x]=[-x,z];else[x,y]=[-y,x];}return[x,y,z];}
+function newCube(){const c=[];for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++){if(!x&&!y&&!z)continue;c.push({home:[x,y,z],pos:[x,y,z],ax:[[1,0,0],[0,1,0],[0,0,1]]});}return c;}
+function applyMove(c,m){const{axis,layer,quarter}=moveInfo(m);for(const p of c){if(layer!==null&&p.pos[axis]!==layer)continue;p.pos=rot(p.pos,axis,quarter);p.ax=p.ax.map(v=>rot(v,axis,quarter));}}
+const FACE_DIRS={U:[0,1,0],D:[0,-1,0],F:[0,0,1],B:[0,0,-1],R:[1,0,0],L:[-1,0,0]};
+
+// Farveskema A: gul op, hvid ned, grøn mod dig (trin 0–7). Skema B: terningen vendt, hvid op og gul ned (trin 8).
+const COL={yellow:"#ffd500",white:"#f4f5f0",green:"#009b48",blue:"#0046ad",red:"#b71234",orange:"#ff5800",grey:"#5d636c",blank:"#3a3f47"};
+const SCHEMES={
+  A:{U:"yellow",D:"white",F:"green",B:"blue",R:"orange",L:"red",hold:"Gul op · grøn mod dig"},
+  B:{U:"white",D:"yellow",F:"green",B:"blue",R:"red",L:"orange",hold:"Gul NED · grøn mod dig"}
+};
+// Hvilke klistermærker vises i farve (resten bliver grå, så man kan se, hvad trinnet handler om)
+function visible(home,face,mode){
+  const t=home.filter(v=>v!==0).length;
+  switch(mode){
+    case "centers":return t===1;
+    case "edges":return t===2;
+    case "corners":return t===3;
+    case "whiteEdges":return t===1||(t===2&&home[1]===-1);
+    case "whiteLayer":return t===1||home[1]===-1;
+    case "f2l":return t===1||home[1]<=0;
+    case "ycross":return t===1||home[1]<=0||(t===2&&face==="U");
+    case "yedges":return t===1||home[1]<=0||t===2;
+    default:return true;
+  }
+}
+
+// ---------- Løser: begyndermetoden, med præcis de træk lektionerne lærer ----------
+const eqv=(a,b)=>a[0]===b[0]&&a[1]===b[1]&&a[2]===b[2];
+const faceOf=d=>Object.keys(FACE_DIRS).find(k=>eqv(FACE_DIRS[k],d));
+const kind=h=>h.filter(Boolean).length;
+const cloneCube=c=>c.map(p=>({home:p.home,pos:p.pos.slice(),ax:p.ax.map(v=>v.slice())}));
+function worldOf(p,d){const r=[0,0,0];for(let i=0;i<3;i++)if(d[i])for(let k=0;k<3;k++)r[k]+=d[i]*p.ax[i][k];return r;}
+function stk(p){const o=[];for(const [f,d] of Object.entries(FACE_DIRS))if(d.every((v,i)=>!v||v===p.home[i]))o.push({h:f,w:worldOf(p,d)});return o;}
+function centers(c){const m={};for(const p of c)if(kind(p.home)===1)m[faceOf(p.home)]=p.pos;return m;}
+const isSolved=(p,cm)=>stk(p).every(s=>eqv(s.w,cm[s.h]));
+function homePos(p,cm){const r=[0,0,0];for(const s of stk(p))for(let k=0;k<3;k++)r[k]+=cm[s.h][k];return r;}
+const SETS={wE:p=>kind(p.home)===2&&p.home[1]===-1,wC:p=>kind(p.home)===3&&p.home[1]===-1,mE:p=>kind(p.home)===2&&p.home[1]===0,yE:p=>kind(p.home)===2&&p.home[1]===1,yC:p=>kind(p.home)===3&&p.home[1]===1};
+const isPetal=(p,cm)=>stk(p).some(s=>s.h==="D"&&eqv(s.w,cm.U));
+const count=(c,set,fn)=>{const cm=centers(c);return c.filter(p=>SETS[set](p)&&fn(p,cm)).length;};
+const yUp=c=>count(c,"yE",(p,cm)=>stk(p).some(s=>s.h==="U"&&eqv(s.w,cm.U)));
+const DONE={cross:c=>count(c,"wE",isSolved)===4};
+DONE.l1=c=>DONE.cross(c)&&count(c,"wC",isSolved)===4;
+DONE.f2l=c=>DONE.l1(c)&&count(c,"mE",isSolved)===4;
+DONE.yx=c=>DONE.f2l(c)&&yUp(c)===4;
+DONE.ye=c=>DONE.yx(c)&&count(c,"yE",isSolved)===4;
+DONE.yc=c=>DONE.ye(c)&&count(c,"yC",(p,cm)=>eqv(p.pos,homePos(p,cm)))===4;
+DONE.all=c=>{const cm=centers(c);return c.every(p=>isSolved(p,cm));};
+
+const MAC=(label,alg,g)=>({label,moves:parseAlg(alg),g});
+const DANCE_ALG="R U R' U'",YC_ALG="F R U R' U' F'";
+const M_U=["U","U'","U2"].map(a=>MAC("Drej toppen",a,"u"));
+const M_Y=["y","y'","y2"].map(a=>MAC("Drej hele terningen",a,"y"));
+const M_SIDE=["F","R","B","L"].flatMap(f=>[f,f+"'",f+"2"].map(a=>MAC("Drej siden",a,"s"+f)));
+const M_DOWN=["F2","R2","B2","L2"].map(a=>MAC("Ned i bunden",a,"d"));
+const M_DANCE=[1,2,3,4,5].map(k=>MAC(`Hjørnedansen ×${k}`,Array(k).fill(DANCE_ALG).join(" "),"x"));
+const M_MID=[MAC("Kanten til højre","U R U' R' U' F' U F","x"),MAC("Kanten til venstre","U' L' U L U F U' F'","x")];
+const M_YC=[MAC("Kryds-algoritmen",YC_ALG,"x")];
+const M_SUNE=[MAC("Kant-algoritmen","R U R' U R U2 R' U","x")];
+const M_NIK=[MAC("Hjørne-rundturen","U R U' L' U R' U' L","x")];
+
+function search(c,macros,maxDepth,goal){
+  const path=[];
+  const dfs=(d,lastG)=>{
+    if(goal(c))return true;
+    if(!d)return false;
+    for(const m of macros){
+      if(m.g!=="x"&&m.g===lastG)continue;
+      for(const mv of m.moves)applyMove(c,mv);
+      path.push(m);
+      if(dfs(d-1,m.g))return true;
+      path.pop();
+      for(const mv of invertAlg(m.moves))applyMove(c,mv);
+    }
+    return false;
+  };
+  for(let D=1;D<=maxDepth;D++)if(dfs(D,null))return path.slice();
+  return null;
+}
+const runMacros=(c,path)=>{for(const m of path)for(const mv of m.moves)applyMove(c,mv);};
+function rotTo(c,i,target){for(const r of [null,...M_Y]){const t=cloneCube(c);if(r)runMacros(t,[r]);if(eqv(t[i].pos,target))return r?[r]:[];}return null;}
+
+function solvePlan(start){
+  const c=cloneCube(start),groups=[];
+  const push=(lesson,label,path,focus)=>groups.push({lesson,label,steps:path.map(m=>({label:m.label,alg:m.moves.join(" ")})),focus:focus||null});
+  const fail=lesson=>({ok:false,lesson,groups});
+  function units(set,fn){const cm=centers(c);return new Set(c.map((_,i)=>i).filter(i=>SETS[set](c[i])&&fn(c[i],cm)));}
+  function unitStage(lesson,set,fn,keep,macros,depth,name,pop,fixed){
+    for(let guard=0;guard<12;guard++){
+      const before=units(set,fn);if(before.size===4)return true;
+      const goal=cc=>{if(!keep(cc))return false;const cm=centers(cc);return cc.filter(p=>SETS[set](p)&&fn(p,cm)).length>before.size;};
+      const path=search(c,macros,depth,goal);
+      if(path){const after=units(set,fn);const i=[...after].find(i=>!before.has(i));
+        push(lesson,`${name} ${after.size} af 4`,path,i===undefined?null:{i,fixed:fixed?c[i].pos.slice():null});continue;}
+      const r=pop&&pop();if(!r)return false;push(lesson,r.label,r.path,null);
+    }
+    return false;
+  }
+  const popPiece=(set,layerY,target,alg,label)=>()=>{const cm=centers(c);
+    const i=c.findIndex(p=>SETS[set](p)&&p.pos[1]===layerY&&!isSolved(p,cm));if(i<0)return null;
+    const path=[...rotTo(c,i,target),alg];runMacros(c,path);return{label,path};};
+
+  if(DONE.all(c))return{ok:true,groups};
+  if(!DONE.cross(c)){
+    if(!unitStage(1,"wE",isPetal,()=>true,[...M_U,...M_SIDE],5,"Blad",null,true))return fail(1);
+    if(!unitStage(2,"wE",isSolved,()=>true,[...M_U,...M_DOWN],2,"Kant",null))return fail(2);
+  }
+  if(!unitStage(3,"wC",isSolved,DONE.cross,[...M_U,...M_Y,...M_DANCE],3,"Hjørne",popPiece("wC",-1,[1,-1,1],M_DANCE[0],"Få et hjørne op i toppen")))return fail(3);
+  if(!unitStage(4,"mE",isSolved,DONE.l1,[...M_U,...M_Y,...M_MID],3,"Kant",popPiece("mE",0,[1,0,1],M_MID[0],"Få en forkert kant op i toppen")))return fail(4);
+  for(let guard=0;guard<4&&!DONE.yx(c);guard++){
+    const b=yUp(c);
+    const path=search(c,[...M_U,...M_YC],3,cc=>DONE.yx(cc))||search(c,[...M_U,...M_YC],2,cc=>DONE.f2l(cc)&&yUp(cc)>b);
+    if(!path)return fail(5);
+    push(5,b===0?"Fra prik til L":"Gult kryds",path);
+  }
+  if(!DONE.yx(c))return fail(5);
+  if(!DONE.ye(c)){const path=search(c,[...M_U,...M_Y,...M_SUNE],6,DONE.ye);if(!path)return fail(6);push(6,"Gule kanter på plads",path);}
+  if(!DONE.yc(c)){const path=search(c,[...M_Y,...M_NIK],4,DONE.yc);if(!path)return fail(7);push(7,"Gule hjørner på plads",path);}
+  if(!DONE.all(c)){
+    const flip=[MAC("Vend terningen","z2","z")];runMacros(c,flip);push(8,"Vend terningen, så gul er nedad",flip);
+    const yDown=p=>stk(p).some(s=>s.h==="U"&&s.w[1]===-1);
+    const at=pos=>c.findIndex(p=>eqv(p.pos,pos));
+    let n=1;
+    for(let guard=0;guard<12&&!c.filter(SETS.yC).every(yDown);guard++){
+      const i=at([1,-1,1]);
+      if(yDown(c[i])){let k=0;const t=cloneCube(c);do{applyMove(t,"D");k++;}while(yDown(t[at.call(null,[1,-1,1])])&&k<4&&false);
+        // drej bunden, til næste forkerte hjørne står foran til højre
+        let turns=0;while(yDown(c[at([1,-1,1])])&&turns<3){applyMove(c,"D");turns++;}
+        const alg=["","D","D2","D'"][turns];push(8,"Næste hjørne frem",[MAC("Drej bunden",alg,"b")]);
+      }else{let k=0;while(!yDown(c[i])&&k<6){for(const mv of parseAlg(DANCE_ALG))applyMove(c,mv);k++;}
+        push(8,`Hjørne ${n++}`,[M_DANCE[k-1]||MAC(`Hjørnedansen ×${k}`,Array(k).fill(DANCE_ALG).join(" "),"x")],{i,fixed:[1,-1,1]});}
+    }
+    for(const a of ["D","D2","D'"]){if(DONE.all(c))break;const t=cloneCube(c);applyMove(t,a);if(DONE.all(t)){applyMove(c,a);push(8,"Bunden på plads",[MAC("Drej bunden",a,"b")]);break;}}
+  }
+  return DONE.all(c)?{ok:true,groups}:fail(8);
+}
+
+// ---------- Fra malede farver til terning ----------
+const COLOR_FACE={yellow:"U",white:"D",green:"F",blue:"B",orange:"R",red:"L"};
+const FACE_COLOR={U:"yellow",D:"white",F:"green",B:"blue",R:"orange",L:"red"};
+const GRID={U:(r,k)=>[k-1,1,r-1],D:(r,k)=>[k-1,-1,1-r],F:(r,k)=>[k-1,1-r,1],B:(r,k)=>[1-k,1-r,-1],R:(r,k)=>[1,1-r,1-k],L:(r,k)=>[-1,1-r,k-1]};
+const INPUT_FACES=["F","R","B","L","U","D"];
+const DA={yellow:"gul",white:"hvid",green:"grøn",blue:"blå",orange:"orange",red:"rød"};
+const DA_PL={yellow:"gule",white:"hvide",green:"grønne",blue:"blå",orange:"orange",red:"røde"};
+function emptyInput(){const o={};for(const f of INPUT_FACES){o[f]=Array(9).fill(null);o[f][4]=FACE_COLOR[f];}return o;}
+function inputFromCube(c,scheme){const sc=SCHEMES[scheme||"A"];const o=emptyInput();for(const f of INPUT_FACES)for(let r=0;r<3;r++)for(let k=0;k<3;k++){const pos=GRID[f](r,k);const p=c.find(q=>eqv(q.pos,pos));const s=stk(p).find(s=>eqv(s.w,FACE_DIRS[f]));o[f][r*3+k]=sc[s.h];}return o;}
+const cross3=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+const det3=m=>m[0][0]*(m[1][1]*m[2][2]-m[1][2]*m[2][1])-m[0][1]*(m[1][0]*m[2][2]-m[1][2]*m[2][0])+m[0][2]*(m[1][0]*m[2][1]-m[1][1]*m[2][0]);
+function cubeFromInput(inp){
+  const errors=[],bad=[];
+  let missing=0;const cnt={};
+  for(const f of INPUT_FACES)for(const v of inp[f]){if(!v)missing++;else cnt[v]=(cnt[v]||0)+1;}
+  if(missing)return{errors:[`Der mangler ${missing} ${missing===1?"felt":"felter"} at blive malet.`],bad};
+  const off=Object.keys(FACE_COLOR).map(f=>FACE_COLOR[f]).filter(col=>(cnt[col]||0)!==9);
+  if(off.length)return{errors:[`Hver farve skal bruges præcis 9 gange. Lige nu: ${off.map(col=>`${cnt[col]||0} ${DA_PL[col]}`).join(", ")}.`],bad};
+  const at={};
+  for(const f of INPUT_FACES)for(let r=0;r<3;r++)for(let k=0;k<3;k++){const pos=GRID[f](r,k),key=pos.join(",");(at[key]=at[key]||[]).push({f,i:r*3+k,h:COLOR_FACE[inp[f][r*3+k]],w:FACE_DIRS[f]});}
+  const cube=[],used={};
+  for(const key of Object.keys(at)){
+    const st=at[key],pos=key.split(",").map(Number);
+    if(st.length===1){cube.push({home:pos,pos,ax:[[1,0,0],[0,1,0],[0,0,1]]});continue;}
+    const home=[0,0,0];st.forEach(s=>FACE_DIRS[s.h].forEach((v,k)=>home[k]+=v));
+    const names=st.map(s=>DA[FACE_COLOR[s.h]]).join(", ");
+    const what=st.length===2?"kant":"hjørne";
+    if(new Set(st.map(s=>s.h)).size!==st.length||kind(home)!==st.length||home.some(v=>Math.abs(v)>1)){errors.push(`Der findes ikke et ${what} med farverne ${names}.`);st.forEach(s=>bad.push([s.f,s.i]));continue;}
+    if(used[home.join()]){errors.push(`Der er to brikker med farverne ${names}.`);st.concat(used[home.join()]).forEach(s=>bad.push([s.f,s.i]));continue;}
+    used[home.join()]=st;
+    const pairs=st.map(s=>[FACE_DIRS[s.h],s.w]);
+    if(pairs.length===2)pairs.push([cross3(pairs[0][0],pairs[1][0]),cross3(pairs[0][1],pairs[1][1])]);
+    const M=[[0,0,0],[0,0,0],[0,0,0]];for(const [l,w] of pairs)for(let a=0;a<3;a++)for(let b=0;b<3;b++)M[a][b]+=w[a]*l[b];
+    if(det3(M)!==1){errors.push(`Hjørnet med ${names} har farverne i en rækkefølge, der ikke findes. Tjek de tre felter.`);st.forEach(s=>bad.push([s.f,s.i]));continue;}
+    cube.push({home,pos,ax:[0,1,2].map(i=>[M[0][i],M[1][i],M[2][i]])});
+  }
+  return errors.length?{errors,bad}:{cube,errors:[],bad:[]};
+}
+
+// ---------- Træk på dansk + ikon ----------
+const WORDS={R:["Højre op","Højre ned"],L:["Venstre ned","Venstre op"],U:["Top mod venstre","Top mod højre"],D:["Bund mod højre","Bund mod venstre"],F:["Forside med uret","Forside mod uret"],B:["Bagside med uret","Bagside mod uret"],y:["Hele terningen mod venstre","Hele terningen mod højre"],z:["Vip terningen med uret","Vip terningen mod uret"]};
+const TWICE={R:"Højre 2 gange",L:"Venstre 2 gange",U:"Top 2 gange",D:"Bund 2 gange",F:"Forside 2 gange",B:"Bagside 2 gange",y:"Hele terningen en halv omgang",z:"Vend terningen, så gul er nedad"};
+const words=m=>m.endsWith("2")?TWICE[m[0]]:WORDS[m[0]][m.endsWith("'")?1:0];
+function head(x1,y1,x2,y2){const a=Math.atan2(y2-y1,x2-x1),s=6.5;const p=[[x2,y2],[x2-s*Math.cos(a-0.5),y2-s*Math.sin(a-0.5)],[x2-s*Math.cos(a+0.5),y2-s*Math.sin(a+0.5)]];return`<polygon points="${p.map(q=>q.join(",")).join(" ")}" fill="currentColor"/>`;}
+function moveIcon(m){
+  const f=m[0],prime=m.endsWith("'"),two=m.endsWith("2");
+  const on=(r,c)=>f==="R"?c===2:f==="L"?c===0:f==="U"?r===0:f==="D"?r===2:true;
+  let g="";for(let r=0;r<3;r++)for(let c=0;c<3;c++)g+=`<rect x="${2+c*11}" y="${2+r*11}" width="10" height="10" rx="2" fill="currentColor" opacity="${on(r,c)?("FBzy".includes(f)?.22:.38):.1}"/>`;
+  let a="";
+  const line=(x1,y1,x2,y2)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>`+head(x1,y1,x2,y2)+(two?head(x1+(x2-x1)*.62,y1+(y2-y1)*.62,x1+(x2-x1)*.8,y1+(y2-y1)*.8):"");
+  let dir=prime?-1:1;
+  if(f==="R"){a=dir>0?line(29,32,29,4):line(29,4,29,32);}
+  else if(f==="L"){a=dir>0?line(7,4,7,32):line(7,32,7,4);}
+  else if(f==="U"){a=dir>0?line(32,7,4,7):line(4,7,32,7);}
+  else if(f==="D"){a=dir>0?line(4,29,32,29):line(32,29,4,29);}
+  else if(f==="y"){a=dir>0?line(32,18,4,18):line(4,18,32,18);}
+  else{let cw=(f==="F"||f==="z")===(dir>0);
+    a=cw?`<path d="M18 7 A11 11 0 1 1 7 18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>`+head(7,22,7,16)
+        :`<path d="M18 7 A11 11 0 1 0 29 18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>`+head(29,22,29,16);
+    if(two)a+=`<text x="18" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="currentColor">2</text>`;}
+  return`<svg viewBox="0 0 36 36" aria-hidden="true">${g}${a}</svg>`;
+}
+const STAR=filled=>`<svg class="star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.9 6 6.5.8-4.8 4.5 1.2 6.5L12 17.2l-5.8 3.2 1.2-6.5L2.6 9.4l6.5-.8z" fill="${filled?"var(--star)":"none"}" stroke="${filled?"var(--star)":"currentColor"}" stroke-width="1.8" stroke-linejoin="round"/></svg>`;
+
+// ---------- Lektioner ----------
+const DANCE="R U R' U'";
+const rep=(n,label)=>Array.from({length:n},(_,i)=>({label:`${label} – ${i+1}. gang`,alg:DANCE}));
+const YC="F R U R' U' F'";
+const LESSONS=[
+ {short:"Kend terningen",title:"Lær terningen at kende",scheme:"A",show:"all",explore:true,
+  intro:"Før vi løser noget, skal vi forstå, hvordan terningen er bygget. Det er det vigtigste trin.",
+  points:["<b>Midterne flytter sig aldrig.</b> Den gule midte er altid overfor den hvide. Midten bestemmer, hvilken farve en side skal have.",
+          "<b>Der er tre slags brikker:</b> 6 midter med 1 farve, 12 kanter med 2 farver og 8 hjørner med 3 farver. En kant bliver altid en kant, og et hjørne bliver altid et hjørne.",
+          "<b>Hold den på samme måde hele tiden:</b> gul midte opad og grøn midte mod dig. Så passer pilene i Terningskolen med din terning."],
+  tip:"<b>Prøv selv:</b> Tryk på knapperne og se, hvad hvert træk gør. Lav samme træk på jeres rigtige terning. Fire ens træk i træk bringer den tilbage igen."},
+ {short:"Blomsten",title:"Den hvide blomst",scheme:"A",show:"whiteEdges",goal:"F2 R2 B2 L2",
+  intro:"Vi starter med at samle de fire hvide kanter rundt om den gule midte. Det ligner en blomst med gul midte og hvide blade.",
+  points:["Hold gul midte opad.","Find en hvid kant (en brik med hvid og én anden farve).","Drej den side, kanten sidder på, så den hvide farve kommer op i toppen."],
+  tip:"<b>Husk:</b> Er pladsen ovenover allerede optaget af et hvidt blad, så drej toppen først. Ellers skubber du et blad væk.",
+  cases:[{name:"Kanten sidder i midten",target:[1,1,0],desc:"Den hvide kant sidder i midterlaget. Ét drej med højre side løfter den op i blomsten.",steps:[{label:"Løft kanten op",alg:"R"}]},
+         {name:"Kanten sidder i bunden",target:[1,1,0],desc:"Den hvide kant sidder nede i bunden. Drej højre side to gange, så kommer den op.",steps:[{label:"Løft kanten op",alg:"R2"}]},
+         {name:"Pladsen er optaget",target:[1,1,0],desc:"Der sidder allerede et hvidt blad lige over kanten. Drej toppen først, så pladsen bliver tom.",steps:[{label:"Gør plads",alg:"U"},{label:"Løft kanten op",alg:"R"}]}]},
+ {short:"Hvidt kryds",title:"Det hvide kryds",scheme:"A",show:"whiteEdges",
+  intro:"Nu flytter vi bladene fra blomsten ned i bunden ét ad gangen. Så får vi et hvidt kryds nedenunder.",
+  points:["Se på et hvidt blad. Hvilken anden farve har det?","Drej toppen, indtil den farve står over midten med samme farve.","Drej siden to gange. Nu sidder den hvide kant nede i bunden.","Gør det samme med alle fire blade."],
+  tip:"<b>Tjek:</b> Vend terningen og se under den. Der skal være et hvidt kryds, og hver kant skal passe med midten på siden.",
+  cases:[{name:"Farven passer allerede",target:[0,-1,1],desc:"Bladet er hvidt på toppen og grønt foran. Det står allerede over den grønne midte, så det kan gå direkte ned.",steps:[{label:"Ned i bunden",alg:"F2"}]},
+         {name:"Drej toppen først",target:[0,-1,1],desc:"Bladets grønne farve står ved den orange midte. Drej toppen, til den står over den grønne midte.",steps:[{label:"Find den rigtige side",alg:"U"},{label:"Ned i bunden",alg:"F2"}]}]},
+ {short:"Hvide hjørner",title:"De hvide hjørner",scheme:"A",show:"whiteLayer",
+  intro:"Nu skal de fire hvide hjørner på plads. Her lærer vi Hjørnedansen, som vi skal bruge igen til sidst.",
+  points:["Find et hjørne i toppen med hvid på.","Drej toppen, så hjørnet står lige over sin plads. Farverne skal passe med de to sider.","Hold det foran til højre. Lav Hjørnedansen <span class=\"alg\">R U R' U'</span> igen og igen, indtil hjørnet sidder rigtigt.","Det tager 1, 3 eller 5 gange. Det afhænger af, hvilken vej den hvide farve vender."],
+  tip:"<b>Hjørnedansen:</b> Højre op, top mod venstre, højre ned, top mod højre. Sig den højt mens I drejer!",
+  cases:[{name:"Hvid vender til højre",target:[1,-1,1],desc:"Det hvide på hjørnet vender ud mod højre. Én Hjørnedans er nok.",steps:rep(1,"Hjørnedansen")},
+         {name:"Hvid vender opad",target:[1,-1,1],desc:"Det hvide på hjørnet vender op. Lav Hjørnedansen 3 gange.",steps:rep(3,"Hjørnedansen")},
+         {name:"Hvid vender mod dig",target:[1,-1,1],desc:"Det hvide på hjørnet vender ind mod dig. Lav Hjørnedansen 5 gange.",steps:rep(5,"Hjørnedansen")}]},
+ {short:"Midterlaget",title:"Midterlaget",scheme:"A",show:"f2l",
+  intro:"Det hvide lag er færdigt. Nu skal de fire kanter i midterlaget på plads.",
+  points:["Find en kant i toppen uden gul. Den skal ned i midterlaget.",
+          "Se på kantens <b>forreste</b> farve. Drej toppen, til den står over midten med samme farve. Nu ligner det et lodret T.",
+          "Se så på kantens farve <b>på toppen</b>. Passer den med midten til <b>højre</b>, skal kanten til højre. Passer den med midten til <b>venstre</b>, skal den til venstre.",
+          "Til højre: <span class=\"alg\">U R U' R'</span> og så <span class=\"alg\">U' F' U F</span>",
+          "Til venstre: <span class=\"alg\">U' L' U L</span> og så <span class=\"alg\">U F U' F'</span>",
+          "Sidder en kant forkert i midterlaget? Sæt en anden kant ind på dens plads. Så kommer den forkerte kant op i toppen, og du kan sætte den rigtigt ind."],
+  tip:"<b>Huskeregel:</b> Toppen drejer først <b>væk</b> fra den side, kanten skal hen til. Første halvdel drejer den side, kanten skal hen til. Anden halvdel drejer forsiden.",
+  cases:[{name:"Kanten skal til højre",target:[1,0,1],desc:"Kanten er grøn foran og står over den grønne midte. På toppen er den orange. Den orange midte sidder til højre, så kanten skal til højre.",steps:[{label:"1. halvdel – højre side",alg:"U R U' R'"},{label:"2. halvdel – forsiden",alg:"U' F' U F"}]},
+         {name:"Kanten skal til venstre",target:[-1,0,1],desc:"Kanten er grøn foran og står over den grønne midte. På toppen er den rød. Den røde midte sidder til venstre, så kanten skal til venstre.",steps:[{label:"1. halvdel – venstre side",alg:"U' L' U L"},{label:"2. halvdel – forsiden",alg:"U F U' F'"}]}]},
+ {short:"Gult kryds",title:"Det gule kryds",scheme:"A",show:"ycross",
+  intro:"Nu går vi til den gule top. Først skal der være et gult kryds. Hjørnerne er ligegyldige lige nu.",
+  points:["Se på toppen. Du ser enten en prik, et L eller en streg.","<b>Streg:</b> Hold den vandret og lav <span class=\"alg\">F R U R' U' F'</span> én gang.","<b>L:</b> Hold L'et, så det peger bagud og til venstre. Lav algoritmen to gange.","<b>Prik:</b> Lav algoritmen én gang. Så får du et L."],
+  tip:"<b>Huskeregel:</b> Forside med uret, så Hjørnedansen, så forside mod uret. Hjørnedansen gemmer sig inden i!",
+  cases:[{name:"Streg",steps:[{label:"Kryds-algoritmen",alg:YC}]},
+         {name:"L",steps:[{label:"Kryds-algoritmen – 1. gang",alg:YC},{label:"Kryds-algoritmen – 2. gang",alg:YC}]},
+         {name:"Prik",steps:[{label:"Nu bliver det et L",alg:YC},{label:"Drej L'et på plads",alg:"U2"},{label:"Kryds-algoritmen – 1. gang",alg:YC},{label:"Kryds-algoritmen – 2. gang",alg:YC}]}]},
+ {short:"Gule kanter",title:"De gule kanter på plads",scheme:"A",show:"yedges",
+  intro:"Krydset er gult, men kanternes sidefarver skal også passe med midterne.",
+  points:["Drej toppen, indtil mindst to kanter passer med midten på siden.","Passer to kanter ved siden af hinanden: hold dem bagved og til højre.","Lav <span class=\"alg\">R U R' U R U2 R' U</span>.","Passer to kanter overfor hinanden: lav algoritmen én gang. Drej toppen og prøv igen."],
+  tip:"<b>Huskeregel:</b> Højre op, top, højre ned, top, højre op, top to gange, højre ned, top.",
+  cases:[{name:"To kanter passer (bag og højre)",steps:[{label:"Kant-algoritmen",alg:"R U R' U R U2 R' U"}]}]},
+ {short:"Hjørner på plads",title:"De gule hjørner på plads",scheme:"A",show:"all",
+  intro:"Nu skal hjørnerne stå på den rigtige plads. De må gerne være drejet forkert. Det ordner vi i sidste trin.",
+  points:["Find et hjørne, der står rigtigt. Alle tre farver skal høre til de tre sider, det står ved.","Hold det hjørne foran til højre.","Lav <span class=\"alg\">U R U' L' U R' U' L</span>. De tre andre hjørner bytter plads.","Gentag, indtil alle fire står rigtigt. Står intet hjørne rigtigt: lav algoritmen én gang fra hvor som helst."],
+  tip:"<b>Hjørnet foran til højre bliver stående.</b> Det er dit anker. De tre andre hjørner går rundt.",
+  cases:[{name:"Én gang",steps:[{label:"Hjørne-rundturen",alg:"U R U' L' U R' U' L"}]},
+         {name:"To gange",steps:[{label:"Hjørne-rundturen – 1. gang",alg:"U R U' L' U R' U' L"},{label:"Hjørne-rundturen – 2. gang",alg:"U R U' L' U R' U' L"}]}]},
+ {short:"Sidste trin",title:"Vend de gule hjørner",scheme:"B",show:"all",finale:true,
+  intro:"Sidste trin! Vi bruger Hjørnedansen fra trin 3 igen.",
+  points:["<b>Vend terningen, så gul er NEDAD.</b>","Hold et forkert hjørne foran til højre nederst.","Lav Hjørnedansen <span class=\"alg\">R U R' U'</span>, indtil gul vender nedad. Det tager 2 eller 4 gange.","Drej kun bunden (D), så det næste forkerte hjørne kommer frem til højre. Gentag.","Når alle hjørner er gule nedenunder, drejer du bunden på plads."],
+  tip:"<b>Bliv ikke bange!</b> Toppen ser helt rodet ud undervejs. Det er meningen. Den bliver hel igen af sig selv. Vend aldrig hele terningen midt i trinnet.",
+  cases:[{name:"To hjørner er forkerte",steps:[...rep(2,"Hjørne 1"),{label:"Næste hjørne frem",alg:"D"},...rep(4,"Hjørne 2"),{label:"Bunden på plads",alg:"D'"}]},
+         {name:"Tre hjørner er forkerte",steps:[...rep(2,"Hjørne 1"),{label:"Næste hjørne frem",alg:"D"},...rep(2,"Hjørne 2"),{label:"Næste hjørne frem",alg:"D"},...rep(2,"Hjørne 3"),{label:"Bunden på plads",alg:"D2"}]}]}
+];
+
+// ---------- Profiler og fremskridt ----------
+const PROFILES=[{id:"elev",name:"Du"}];
+const TRAIL_COL=["white","yellow","white","white","green","yellow","orange","red","blue"];
+const store={};for(const p of PROFILES)store[p.id]={steps:{},solves:0};
+let db=null;const LS="terningskolen-v1";
+const ls={get(k){try{return localStorage.getItem(k)}catch{return null}},set(k,v){try{localStorage.setItem(k,v)}catch{}}};
+function normalize(d){const s={};if(d&&d.steps&&typeof d.steps==="object")for(const k of Object.keys(d.steps))if(d.steps[k])s[k]=true;return{steps:s,solves:Math.max(0,Number(d&&d.solves)||0)};}
+const writeQ={};
+function save(pid){
+  const data={steps:{...store[pid].steps},solves:store[pid].solves,updatedAt:Date.now()};
+  if(!db){const all={};for(const p of PROFILES)all[p.id]=store[p.id];ls.set(LS,JSON.stringify(all));return;}
+  writeQ[pid]=(writeQ[pid]||Promise.resolve()).then(()=>db.doc("progress/"+pid).set(data)).catch(()=>toast("Kunne ikke gemme. Tjek forbindelsen og prøv igen."));
+}
+function loadLocal(){try{const all=JSON.parse(ls.get(LS)||"{}");for(const p of PROFILES)if(all[p.id])store[p.id]=normalize(all[p.id]);}catch{}}
+async function initStore(){
+  loadLocal();render();
+  const d=null;
+  const note=document.getElementById("storeNote");
+  if(!d){note.textContent="Dine stjerner gemmes kun på denne enhed.";return;}
+  db=d;note.textContent="Fremskridt deles mellem alle jeres enheder.";
+  db.collection("progress").onSnapshot(snap=>{
+    for(const doc of snap.docs)if(store[doc.id])store[doc.id]=normalize(doc.data());
+    render(true);
+  },()=>{note.textContent="Kunne ikke hente fremskridt lige nu. Genindlæs siden for at prøve igen.";});
+}
+const doneCount=pid=>LESSONS.filter((_,i)=>store[pid].steps[i]).length;
+
+// ---------- UI-tilstand ----------
+const ui={view:"home",who:ls.get("ts-who")||null,lesson:0,caseIdx:0,speed:ls.get("ts-speed")||"calm",filter:"all",face:0,paint:"green",bad:[],msg:"",msgOk:false,solution:null,clearArm:false};
+ui.who="elev";
+const pColor=id=>`var(--c-${id})`;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2600);}
+
+function render(fromStore){
+  renderWho();
+  if(ui.view==="home")return renderHome();
+  if(fromStore)return renderProgressBits();
+  if(ui.view==="lesson")renderLesson();
+  else if(ui.view==="mycube")renderMyCube();
+  else if(ui.view==="solution")renderSolution();
+}
+function go(v){ui.view=v;stopPlay();render();window.scrollTo(0,0);}
+function renderWho(){
+  const p=PROFILES.find(x=>x.id===ui.who);
+  $("#whoBox").innerHTML=false?`<button class="who" id="switchWho" aria-label="Skift elev"><span class="avatar" style="background:${pColor(p.id)}">${p.name[0]}</span><span><b>${p.name}</b> øver<br><small>Skift elev</small></span></button>`:"";
+  const b=$("#switchWho");if(b)b.onclick=()=>go("home");
+}
+function renderHome(){
+  teardownCube();
+  $("#app").innerHTML=`<div class="wrap">
+   <section class="hero"><h2>Velkommen til Terningskolen</h2><p>Lær at løse Rubiks terning i 9 små trin. Hav jeres rigtige terning i hånden, og gør det samme som terningen på skærmen.</p></section>
+   <section class="profiles">${PROFILES.map(p=>{const n=doneCount(p.id),s=store[p.id];return`
+    <article class="pcard">
+      <div class="top"><span class="avatar" style="background:${pColor(p.id)}">★</span><div><h3>Dine stjerner</h3><div class="age">Gemt på denne enhed</div></div></div>
+      <div class="trail" aria-label="${n} af 9 trin klaret">${LESSONS.map((_,i)=>`<span title="Trin ${i}" style="${s.steps[i]?`background:${COL[TRAIL_COL[i]]};border-color:#1a1d23`:""}"></span>`).join("")}</div>
+      <div class="pstats"><span><b>${n}</b> af 9 trin</span><span>Løst terningen <b>${s.solves}</b> ${s.solves===1?"gang":"gange"}</span></div>
+      ${n===9?`<span class="badge">${STAR(true)} Terningmester</span>`:""}
+      <button class="go" data-who="${p.id}">${n?"Fortsæt":"Start ved trin 0"}</button>
+    </article>`}).join("")}</section>
+   <section class="mycard"><div><h3>Ser jeres terning anderledes ud?</h3><p>Mal jeres egen terning ind. Så viser Terningskolen præcis, hvad I skal gøre fra der, hvor I er nået til, med de træk I har lært.</p></div><button class="btn primary" id="toMyCube">${CUBE_ICON}Mal min terning</button></section>
+   <section class="howto">
+     <div><h3>1. Vælg dit trin</h3><p>Start ved trin 0. Hvert trin bygger videre på det forrige.</p></div>
+     <div><h3>2. Se og gør efter</h3><p>Afspil langsomt eller tag ét træk ad gangen. Lav samme træk på jeres terning.</p></div>
+     <div><h3>3. Saml stjerner</h3><p>Når du kan trinnet uden hjælp, trykker du på "Jeg kan det". Stjernen gemmes.</p></div>
+   </section></div>`;
+  document.querySelectorAll("[data-who]").forEach(b=>b.onclick=()=>{
+    ui.who=b.dataset.who;ls.set("ts-who",ui.who);
+    const s=store[ui.who].steps;const first=LESSONS.findIndex((_,i)=>!s[i]);
+    ui.lesson=first<0?0:first;ui.caseIdx=0;go("lesson");});
+  $("#toMyCube").onclick=()=>go("mycube");
+}
+const CUBE_ICON=`<svg class="cubeic" viewBox="0 0 20 20" aria-hidden="true"><rect x="1" y="1" width="18" height="18" rx="4" fill="#1a1d23"/><rect x="3" y="3" width="4" height="4" rx="1" fill="#ffd500"/><rect x="8" y="3" width="4" height="4" rx="1" fill="#009b48"/><rect x="13" y="3" width="4" height="4" rx="1" fill="#ff5800"/><rect x="3" y="8" width="4" height="4" rx="1" fill="#0046ad"/><rect x="8" y="8" width="4" height="4" rx="1" fill="#ffd500"/><rect x="13" y="8" width="4" height="4" rx="1" fill="#f4f5f0"/><rect x="3" y="13" width="4" height="4" rx="1" fill="#b71234"/><rect x="8" y="13" width="4" height="4" rx="1" fill="#f4f5f0"/><rect x="13" y="13" width="4" height="4" rx="1" fill="#ffd500"/></svg>`;
+function stepsStrip(){
+  const s=ui.who?store[ui.who].steps:{};
+  return LESSONS.map((L,i)=>`<button class="chip" data-step="${i}" aria-current="${ui.view==="lesson"&&i===ui.lesson}"><span class="n">${i}</span>${esc(L.short)}${ui.who?STAR(!!s[i]):""}</button>`).join("")
+    +`<button class="chip mine" data-mycube aria-current="${ui.view==="mycube"||ui.view==="solution"}">${CUBE_ICON}Min terning</button>`;
+}
+function renderProgressBits(){
+  const strip=$("#steps");if(strip){strip.innerHTML=stepsStrip();bindStrip();}
+  const mb=$("#masterBox");if(mb){mb.innerHTML=masterHtml();bindMaster();}
+}
+function masterHtml(){
+  const L=LESSONS[ui.lesson],s=store[ui.who],on=!!s.steps[ui.lesson],p=PROFILES.find(x=>x.id===ui.who);
+  return`<button class="master" id="masterBtn" aria-pressed="${on}">${STAR(on)}<span>${on?"Du kan det!":"Jeg kan det!"}<small>${on?"Tryk igen for at fortryde":"Tryk når du kan trinnet uden hjælp"}</small></span></button>
+  ${L.finale?`<div class="solves"><span>Du har løst hele terningen <b>${s.solves}</b> ${s.solves===1?"gang":"gange"}</span><button class="btn" id="solveBtn">Jeg løste den! +1</button></div>`:""}`;
+}
+function bindMaster(){
+  const b=$("#masterBtn");if(b)b.onclick=()=>{
+    const s=store[ui.who];const on=!s.steps[ui.lesson];
+    if(on)s.steps[ui.lesson]=true;else delete s.steps[ui.lesson];
+    save(ui.who);renderProgressBits();
+    if(on){$("#masterBtn svg").classList.add("pop");if(doneCount(ui.who)===9||LESSONS[ui.lesson].finale)confetti();else toast("Stjerne gemt!");}
+  };
+  const sb=$("#solveBtn");if(sb)sb.onclick=()=>{store[ui.who].solves++;save(ui.who);renderProgressBits();confetti();};
+}
+function bindStrip(){
+  document.querySelectorAll("[data-step]").forEach(b=>b.onclick=()=>{
+    ui.lesson=+b.dataset.step;ui.caseIdx=0;ui.filter="all";go("lesson");});
+  const mc=document.querySelector("[data-mycube]");if(mc)mc.onclick=()=>{if(ui.view!=="mycube")go("mycube");};
+  const cur=document.querySelector('.steps [aria-current="true"]');if(cur)cur.scrollIntoView({block:"nearest",inline:"center"});
+}
+const stageHtml=(hold,down,hint)=>`<div class="canvasbox" id="cbox"><span class="hold" id="holdBadge">${hold}</span><button class="viewbtn" id="viewBtn">${down?"Se oppefra":"Se nedefra"}</button><span class="draghint">${hint||"Træk for at se terningen fra andre sider"}</span></div>
+  <div class="legend" id="legend" hidden><span><i class="sw halo"></i>Brikken vi flytter</span><span><i class="sw slot"></i>Pladsen den skal hen på</span></div>`;
+const playerHtml=()=>`
+  <div class="nowmove" id="nowMove" aria-live="polite"></div>
+  <div class="controls">
+    <button class="btn" id="prevBtn" aria-label="Forrige træk"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Tilbage</button>
+    <button class="btn primary" id="playBtn"></button>
+    <button class="btn" id="nextBtn" aria-label="Næste træk">Ét træk<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button class="btn" id="restartBtn">Forfra</button>
+    <div class="seg" role="group" aria-label="Tempo"><button data-speed="calm" aria-pressed="${ui.speed==="calm"}">Rolig</button><button data-speed="fast" aria-pressed="${ui.speed==="fast"}">Hurtig</button></div>
+  </div>
+  <div class="tiles" id="tiles"></div>`;
+function bindPlayer(){
+  $("#playBtn").onclick=togglePlay;
+  $("#nextBtn").onclick=()=>{stopPlay();stepFwd();};
+  $("#prevBtn").onclick=()=>{stopPlay();stepBack();};
+  $("#restartBtn").onclick=()=>jumpTo(0);
+  document.querySelectorAll("[data-speed]").forEach(b=>b.onclick=()=>{ui.speed=b.dataset.speed;ls.set("ts-speed",ui.speed);document.querySelectorAll("[data-speed]").forEach(x=>x.setAttribute("aria-pressed",x===b));});
+}
+function bindViewBtn(){const b=$("#viewBtn");if(!b)return;b.onclick=()=>{const down=view.pitch>0;tweenView(-0.6,down?-0.5:0.45);b.textContent=down?"Se oppefra":"Se nedefra";};}
+
+function renderLesson(){
+  const L=LESSONS[ui.lesson];
+  const caseBlock=L.cases?`<div class="cases"><h3>Vælg en situation</h3><div class="casebtns">${L.cases.map((c,i)=>`<button data-case="${i}" aria-pressed="${i===ui.caseIdx}">${esc(c.name)}</button>`).join("")}</div><p class="casedesc" id="caseDesc" hidden></p></div>`:"";
+  const explore=L.explore?`
+    <div class="group"><span class="gl">Vis kun</span><div class="filters seg" role="group">${[["all","Alle"],["centers","Midter"],["edges","Kanter"],["corners","Hjørner"]].map(([k,t])=>`<button data-filter="${k}" aria-pressed="${ui.filter===k}">${t}</button>`).join("")}</div></div>
+    <div class="group"><span class="gl">Prøv et træk</span><div class="pad">${["R","R'","L","L'","U","U'","D","D'","F","F'"].map(m=>`<button class="tile" data-try="${m}">${moveIcon(m)}<span>${words(m)}</span><span class="k">${m}</span></button>`).join("")}</div></div>
+    <div class="controls"><button class="btn" id="resetCube">Gør terningen hel igen</button></div>`:"";
+  $("#app").innerHTML=`<div class="wrap">
+   <nav class="steps" id="steps" aria-label="Trin">${stepsStrip()}</nav>
+   <div class="lesson">
+     <section class="stage">
+       ${stageHtml(SCHEMES[L.scheme].hold,L.scheme==="B")}
+       ${L.explore?explore:playerHtml()}
+     </section>
+     <section class="text">
+       <span class="eyebrow">Trin ${ui.lesson} af 8</span>
+       <h2>${esc(L.title)}</h2>
+       <p>${L.intro}</p>
+       <ol>${L.points.map(p=>`<li>${p}</li>`).join("")}</ol>
+       <div class="tip">${L.tip}</div>
+       ${caseBlock}
+       <button class="differ" id="differBtn">${CUBE_ICON}<span><b>Min terning ser anderledes ud</b><small>Ret farverne, så den ligner jeres, og få vejen videre</small></span></button>
+       <div id="masterBox">${masterHtml()}</div>
+       <div class="nav">
+         <button class="btn" id="prevLesson" ${ui.lesson===0?"disabled":""}>Forrige trin</button>
+         <button class="btn" id="nextLesson" ${ui.lesson===LESSONS.length-1?"disabled":""}>Næste trin</button>
+       </div>
+     </section>
+   </div></div>`;
+  bindStrip();bindMaster();bindViewBtn();
+  document.querySelectorAll("[data-case]").forEach(b=>b.onclick=()=>{ui.caseIdx=+b.dataset.case;stopPlay();document.querySelectorAll("[data-case]").forEach(x=>x.setAttribute("aria-pressed",x===b));loadCase();});
+  document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{ui.filter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>x.setAttribute("aria-pressed",x===b));view.mode=ui.filter;syncMeshes();});
+  document.querySelectorAll("[data-try]").forEach(b=>b.onclick=()=>{if(!view.busy)animateMove(b.dataset.try,durMs());});
+  $("#prevLesson").onclick=()=>{ui.lesson--;ui.caseIdx=0;go("lesson");};
+  $("#nextLesson").onclick=()=>{ui.lesson++;ui.caseIdx=0;go("lesson");};
+  $("#differBtn").onclick=()=>{
+    // start malingen fra præcis den stilling, lektionen viser lige nu
+    const c=cloneCube(view.cube);if(L.scheme==="B")applyMove(c,"z2");
+    ui.input=inputFromCube(c,L.scheme);ui.face=0;ui.bad=[];ui.msgOk=true;
+    ui.msg="Terningen her er den samme som i lektionen. Vælg en farve, og tryk på de felter, der ser anderledes ud på jeres terning. Tjek alle seks sider, også dem der var grå.";
+    saveInput();go("mycube");};
+  const rc=$("#resetCube");if(rc)rc.onclick=()=>{view.cube=newCube();syncMeshes();};
+  if(!L.explore)bindPlayer();
+  setupCube($("#cbox"),{scheme:L.scheme,mode:L.explore?ui.filter:L.show,pitch:L.scheme==="B"?-0.5:0.45});
+  loadCase();
+}
+
+// ---------- 3D-terning ----------
+const view={renderer:null,scene:null,camera:null,rig:null,meshes:[],cube:newCube(),mode:"all",scheme:"A",preview:null,onPick:null,yaw:-0.6,pitch:0.45,busy:false,dirty:true,raf:0,ro:null,halo:null,slot:null};
+const durMs=()=>{const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;return reduce?140:ui.speed==="calm"?950:420;};
+let stickerGeo=null;
+function roundedRect(s,r){const sh=new THREE.Shape(),h=s/2;sh.moveTo(-h+r,-h);sh.lineTo(h-r,-h);sh.quadraticCurveTo(h,-h,h,-h+r);sh.lineTo(h,h-r);sh.quadraticCurveTo(h,h,h-r,h);sh.lineTo(-h+r,h);sh.quadraticCurveTo(-h,h,-h,h-r);sh.lineTo(-h,-h+r);sh.quadraticCurveTo(-h,-h,-h+r,-h);return new THREE.ShapeGeometry(sh);}
+function setupCube(box,o){
+  teardownCube();
+  if(!window.THREE){box.insertAdjacentHTML("beforeend",`<p style="position:absolute;inset:40% 16px auto;text-align:center">3D-terningen kunne ikke indlæses. Genindlæs siden.</p>`);return;}
+  const r=new THREE.WebGLRenderer({antialias:true,alpha:true});r.setPixelRatio(Math.min(devicePixelRatio||1,2));
+  box.prepend(r.domElement);
+  const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(32,1,0.1,100);cam.position.set(0,0,10.2);
+  scene.add(new THREE.AmbientLight(0xffffff,0.78));const dl=new THREE.DirectionalLight(0xffffff,0.42);dl.position.set(3,6,8);scene.add(dl);
+  const rig=new THREE.Group();scene.add(rig);
+  stickerGeo=stickerGeo||roundedRect(0.84,0.12);
+  const bodyGeo=new THREE.BoxGeometry(0.97,0.97,0.97),bodyMat=new THREE.MeshLambertMaterial({color:0x17191e});
+  view.meshes=[];
+  for(let i=0;i<26;i++){
+    const g=new THREE.Group();g.add(new THREE.Mesh(bodyGeo,bodyMat));g.userData={stickers:{},idx:i};
+    for(const [f,d] of Object.entries(FACE_DIRS)){
+      const m=new THREE.Mesh(stickerGeo,new THREE.MeshLambertMaterial({color:0xffffff,side:THREE.DoubleSide}));
+      m.position.set(d[0]*0.49,d[1]*0.49,d[2]*0.49);m.lookAt(d[0],d[1],d[2]);m.userData.face=f;g.add(m);g.userData.stickers[f]=m;
+    }
+    rig.add(g);view.meshes.push(g);
+  }
+  // markering: lysende glorie om brikken og en ramme om dens mål-plads
+  view.halo=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.2,1.2),new THREE.MeshBasicMaterial({color:0xff2d9b,transparent:true,opacity:.45,side:THREE.BackSide,depthWrite:false}));
+  view.halo.visible=false;
+  view.slot=new THREE.Group();const barMat=new THREE.MeshBasicMaterial({color:0xff2d9b});
+  for(let a=0;a<3;a++)for(const s1 of [-1,1])for(const s2 of [-1,1]){const d=[0.07,0.07,0.07];d[a]=1.14;const b=new THREE.Mesh(new THREE.BoxGeometry(...d),barMat);const p=[0,0,0];p[(a+1)%3]=s1*0.535;p[(a+2)%3]=s2*0.535;b.position.set(...p);view.slot.add(b);}
+  view.slot.visible=false;rig.add(view.slot);
+  Object.assign(view,{renderer:r,scene,camera:cam,rig,scheme:o.scheme||"A",mode:o.mode||"all",preview:o.preview||null,onPick:o.onPick||null,yaw:o.yaw??-0.6,pitch:o.pitch??0.45,busy:false});
+  box.style.cursor=view.onPick?"pointer":"";
+  const resize=()=>{const w=box.clientWidth;r.setSize(w,w,false);cam.aspect=1;cam.updateProjectionMatrix();view.dirty=true;};
+  view.ro=new ResizeObserver(resize);view.ro.observe(box);resize();
+  // træk for at dreje udsigten; et kort tryk uden at trække maler et felt
+  let drag=null;
+  box.onpointerdown=e=>{if(e.target.closest("button"))return;drag={x:e.clientX,y:e.clientY,yaw:view.yaw,pitch:view.pitch,moved:0};box.setPointerCapture(e.pointerId);};
+  box.onpointermove=e=>{if(!drag)return;drag.moved=Math.max(drag.moved,Math.hypot(e.clientX-drag.x,e.clientY-drag.y));view.yaw=drag.yaw+(e.clientX-drag.x)*0.01;view.pitch=Math.max(-1.4,Math.min(1.4,drag.pitch+(e.clientY-drag.y)*0.01));applyView();};
+  box.onpointerup=e=>{const d=drag;drag=null;if(d&&d.moved<6&&view.onPick){
+    const rect=r.domElement.getBoundingClientRect(),rc=new THREE.Raycaster();
+    rc.setFromCamera(new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,-((e.clientY-rect.top)/rect.height)*2+1),cam);
+    const hit=rc.intersectObjects(view.meshes,true).find(h=>h.object.visible);if(!hit)return;
+    // rammes den sorte kant mellem felterne, bruges feltet på den side af brikken
+    const g=hit.object.parent,f=hit.object.userData.face||(hit.face&&faceOf(hit.face.normal.toArray().map(Math.round)));
+    if(f&&g.userData.stickers[f].visible)view.onPick(f,g.userData.idx);}};
+  box.onpointercancel=()=>{drag=null;};
+  applyView();
+  const calm=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const loop=now=>{view.raf=requestAnimationFrame(loop);
+    if(view.halo.visible&&!calm){view.halo.material.opacity=.32+.2*Math.sin((now||0)/280);view.dirty=true;}
+    if(view.dirty){r.render(scene,cam);view.dirty=false;}};loop();
+}
+function teardownCube(){if(view.raf)cancelAnimationFrame(view.raf);view.raf=0;if(view.ro)view.ro.disconnect();view.ro=null;if(view.renderer){view.renderer.dispose();view.renderer.domElement.remove();}view.renderer=null;view.rig=null;view.halo=null;view.slot=null;view.busy=false;}
+function applyView(){if(!view.rig)return;view.rig.rotation.set(view.pitch,view.yaw,0,"XYZ");view.dirty=true;}
+function tweenView(yaw,pitch){
+  const y0=view.yaw,p0=view.pitch,t0=performance.now(),rig=view.rig;
+  const tick=now=>{if(view.rig!==rig)return;const k=Math.min(1,(now-t0)/450),e=1-Math.pow(1-k,3);view.yaw=y0+(yaw-y0)*e;view.pitch=p0+(pitch-p0)*e;applyView();if(k<1)requestAnimationFrame(tick);};
+  requestAnimationFrame(tick);
+}
+function syncMeshes(){
+  if(!view.rig)return;const sch=SCHEMES[view.scheme];
+  view.cube.forEach((p,i)=>{const g=view.meshes[i];g.position.set(...p.pos);
+    const m=new THREE.Matrix4().makeBasis(new THREE.Vector3(...p.ax[0]),new THREE.Vector3(...p.ax[1]),new THREE.Vector3(...p.ax[2]));g.quaternion.setFromRotationMatrix(m);
+    for(const [f,d] of Object.entries(FACE_DIRS)){const st=g.userData.stickers[f];const has=d.every((v,k)=>!v||v===p.home[k]);st.visible=has;
+      if(!has)continue;
+      if(view.preview){const v=view.preview[f][GRID_IDX[f][p.home.join()]];st.material.color.set(v?COL[v]:COL.blank);}
+      else st.material.color.set(visible(p.home,f,view.mode)?COL[sch[f]]:COL.grey);}
+  });view.dirty=true;
+}
+function setFocus(i,target){
+  const lg=$("#legend");if(lg)lg.hidden=i<0;
+  if(!view.halo)return;
+  if(view.halo.parent)view.halo.parent.remove(view.halo);
+  view.halo.visible=i>=0;view.slot.visible=i>=0;
+  if(i>=0){view.meshes[i].add(view.halo);view.slot.position.set(...target);view.slot.rotation.set(0,0,0);}
+  view.dirty=true;
+}
+function animateMove(m,ms){
+  return new Promise(res=>{
+    const cubeRef=view.cube,rig=view.rig;
+    if(!rig){applyMove(cubeRef,m);return res();}
+    view.busy=true;const{axis,layer,quarter}=moveInfo(m);
+    const pivot=new THREE.Group();rig.add(pivot);
+    cubeRef.forEach((p,i)=>{if(layer===null||p.pos[axis]===layer)pivot.attach(view.meshes[i]);});
+    if(layer===null&&view.slot)pivot.attach(view.slot);
+    const target=quarter*Math.PI/2,key="xyz"[axis],t0=performance.now(),dur=Math.abs(quarter)===2?ms*1.4:ms;
+    const tick=now=>{if(view.rig!==rig){view.busy=false;return res();}
+      const k=Math.min(1,(now-t0)/dur),e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;pivot.rotation[key]=target*e;view.dirty=true;
+      if(k<1)return requestAnimationFrame(tick);
+      for(const g of [...pivot.children])rig.attach(g);rig.remove(pivot);
+      // er der hoppet til en anden stilling undervejs, gælder den nye stilling
+      applyMove(cubeRef,m);syncMeshes();view.busy=false;res();};
+    requestAnimationFrame(tick);
+  });
+}
+
+// ---------- Afspiller (lektioner og jeres egen vej) ----------
+const player={steps:[],flat:[],stepOf:[],idx:0,playing:false,token:0,start:null};
+function setPlayer(start,steps,at){
+  player.start=cloneCube(start);player.steps=steps;player.flat=[];player.stepOf=[];
+  steps.forEach((s,si)=>parseAlg(s.alg).forEach(m=>{player.flat.push(m);player.stepOf.push(si);}));
+  jumpTo(Math.min(at||0,player.flat.length));
+}
+function jumpTo(n){
+  player.playing=false;player.token++;
+  view.cube=cloneCube(player.start);for(let k=0;k<n;k++)applyMove(view.cube,player.flat[k]);
+  player.idx=n;syncMeshes();updateFocus();renderTiles();
+}
+const curStep=()=>player.stepOf[Math.min(player.idx,player.flat.length-1)];
+function updateFocus(){
+  updateHold();
+  const s=player.steps[curStep()];
+  if(!s||!s.focus||!view.cube[s.focus.i])return setFocus(-1);
+  setFocus(s.focus.i,s.focus.fixed||homePos(view.cube[s.focus.i],centers(view.cube)));
+}
+const cap=s=>s[0].toUpperCase()+s.slice(1);
+function updateHold(){
+  if(ui.view!=="solution")return;const h=$("#holdBadge");if(!h)return;
+  const cm=centers(view.cube),at=d=>FACE_COLOR[Object.keys(cm).find(k=>eqv(cm[k],d))];
+  h.textContent=`${cap(DA[at([0,1,0])])} op · ${DA[at([0,0,1])]} mod dig`;
+}
+function loadCase(){
+  const L=LESSONS[ui.lesson];
+  if(L.explore){view.cube=newCube();setFocus(-1);syncMeshes();return;}
+  const c=L.cases[ui.caseIdx];
+  const cube=newCube();for(const m of parseAlg(L.goal||""))applyMove(cube,m);
+  // brikken, der står på mål-pladsen når trinnet er færdigt, er den vi følger
+  const fi=c.target?cube.findIndex(p=>eqv(p.pos,c.target)):-1;
+  for(const m of invertAlg(c.steps.flatMap(s=>parseAlg(s.alg))))applyMove(cube,m);
+  const cd=$("#caseDesc");if(cd){cd.textContent=c.desc||"";cd.hidden=!c.desc;}
+  setPlayer(cube,c.steps.map(s=>({...s,chapter:0,focus:fi>=0?{i:fi,fixed:c.target}:null})));
+}
+function renderTiles(){
+  const box=$("#tiles");if(!box)return;
+  const cs=curStep(),chap=player.steps[cs]?player.steps[cs].chapter:0;let n=0;
+  box.innerHTML=player.steps.map(s=>{const ms=parseAlg(s.alg),start=n;n+=ms.length;if(s.chapter!==chap)return"";
+    return`<div class="group"><span class="gl">${esc(s.label)}</span><div class="trow">${ms.map((m,j)=>{const i=start+j;return`<div class="tile ${i<player.idx?"done":""} ${i===player.idx?"cur":""}">${moveIcon(m)}<span>${words(m)}</span><span class="k">${m}</span></div>`;}).join("")}</div></div>`;}).join("");
+  const nm=$("#nowMove");
+  if(player.idx<player.flat.length){const m=player.flat[player.idx];nm.innerHTML=`<span style="font-size:14px;color:var(--muted)">${player.idx===0?"Første træk":"Næste træk"}</span>${moveIcon(m)}<span class="w">${words(m)}</span><span class="k">${m}</span>`;}
+  else nm.innerHTML=ui.view==="solution"?`<span class="w" style="color:var(--good)">Løst!</span><span>Jeres terning er færdig.</span>`:`<span class="w" style="color:var(--good)">Færdig!</span><span>Prøv nu selv på jeres terning.</span>`;
+  $("#playBtn").innerHTML=player.playing?`<svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></svg>Pause`:`<svg viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg>${player.idx>=player.flat.length?"Se igen":player.idx?"Fortsæt":"Afspil"}`;
+  $("#prevBtn").disabled=player.idx===0;$("#nextBtn").disabled=player.idx>=player.flat.length;
+  if(ui.view==="solution")renderSolutionSide();
+}
+async function stepFwd(){
+  if(view.busy||player.idx>=player.flat.length)return;
+  const m=player.flat[player.idx];player.idx++;renderTiles();await animateMove(m,durMs());updateFocus();
+  if(ui.view==="solution"&&player.idx===player.flat.length&&!player.playing)confetti();
+}
+async function stepBack(){if(view.busy||player.idx===0)return;player.idx--;renderTiles();await animateMove(invertMove(player.flat[player.idx]),durMs());updateFocus();}
+function stopPlay(){player.playing=false;}
+async function togglePlay(){
+  if(player.playing){player.playing=false;renderTiles();return;}
+  if(view.busy)return;
+  if(player.idx>=player.flat.length)jumpTo(0);
+  player.playing=true;const tok=++player.token;renderTiles();
+  await new Promise(r=>setTimeout(r,250));
+  while(player.playing&&player.token===tok&&player.idx<player.flat.length&&view.rig){
+    await stepFwd();
+    const a=player.stepOf[player.idx-1],b=player.stepOf[player.idx];
+    await new Promise(r=>setTimeout(r,(ui.speed==="calm"?220:90)+(a!==b?500:0)));
+  }
+  if(player.token===tok){const finished=player.playing&&player.idx>=player.flat.length;player.playing=false;if($("#playBtn"))renderTiles();if(finished&&ui.view==="solution")confetti();}
+}
+
+// ---------- Min terning: mal farverne ind ----------
+const GRID_IDX={};for(const f of INPUT_FACES){GRID_IDX[f]={};for(let r=0;r<3;r++)for(let k=0;k<3;k++)GRID_IDX[f][GRID[f](r,k).join()]=r*3+k;}
+const FACE_INFO={
+  F:["Grøn side","Hold terningen med gul op og grøn mod dig."],
+  R:["Orange side","Drej hele terningen mod venstre, så orange er mod dig. Gul er stadig op."],
+  B:["Blå side","Drej igen mod venstre, så blå er mod dig. Gul er stadig op."],
+  L:["Rød side","Drej igen mod venstre, så rød er mod dig. Gul er stadig op."],
+  U:["Gul side (toppen)","Hold grøn mod dig. Vip toppen ned mod dig, så du kigger lige på den gule side. Grøn er nu nederst."],
+  D:["Hvid side (bunden)","Hold grøn mod dig. Vip bunden op mod dig, så du kigger lige på den hvide side. Grøn er nu øverst."]};
+const FACE_VIEW={F:[-0.35,0.35],R:[-Math.PI/2-0.35,0.35],B:[-Math.PI-0.35,0.35],L:[-1.5*Math.PI-0.35,0.35],U:[-0.35,1.2],D:[-0.35,-1.2]};
+function loadInput(){try{const o=JSON.parse(ls.get("ts-cube")||"null");if(o&&INPUT_FACES.every(f=>Array.isArray(o[f])&&o[f].length===9)){for(const f of INPUT_FACES){o[f]=o[f].map(v=>v in COLOR_FACE?v:null);o[f][4]=FACE_COLOR[f];}return o;}}catch{}return emptyInput();}
+ui.input=loadInput();
+const saveInput=()=>ls.set("ts-cube",JSON.stringify(ui.input));
+const miniFace=f=>`<svg viewBox="0 0 34 34" aria-hidden="true">${ui.input[f].map((v,i)=>`<rect x="${(i%3)*11+1.5}" y="${Math.floor(i/3)*11+1.5}" width="9" height="9" rx="2" fill="${v?COL[v]:"none"}" stroke="${v?"rgba(0,0,0,.25)":"currentColor"}" stroke-opacity="${v?1:.4}" ${v?"":`stroke-dasharray="2 2"`}/>`).join("")}</svg>`;
+function renderMyCube(){
+  const f=INPUT_FACES[ui.face];
+  $("#app").innerHTML=`<div class="wrap"><nav class="steps" id="steps" aria-label="Trin">${stepsStrip()}</nav>
+  <div class="lesson">
+   <section class="stage">${stageHtml(FACE_INFO[f][0],false,"Tryk på et felt for at male det · træk for at dreje")}
+     <div class="facetabs" id="faceTabs" role="group" aria-label="Sider"></div>
+   </section>
+   <section class="text">
+     <span class="eyebrow">Min terning</span>
+     <h2>Mal jeres terning ind</h2>
+     <p>Vælg en farve og tryk på felterne, enten på 3D-terningen eller i gitteret. Gå siderne igennem én ad gangen. Så finder Terningskolen ud af, hvilket trin I er nået til, og viser vejen videre med de træk, I har lært.</p>
+     <div class="msg" id="inputMsg" hidden></div>
+     <div class="facehead"><span class="eyebrow" id="faceNo"></span><h3 id="faceName"></h3><p id="faceHow"></p></div>
+     <div class="paintgrid" id="paintGrid" role="group" aria-label="Felter på siden"></div>
+     <div class="palette" id="palette" role="group" aria-label="Farver"></div>
+     <div class="controls left"><button class="btn" id="prevFace">Forrige side</button><button class="btn" id="nextFace">Næste side</button><button class="btn" id="clearFace">Ryd siden</button></div>
+     <p class="muted" id="paintedNo"></p>
+     <button class="btn primary big" id="findBtn">Find vejen til løsningen</button>
+     ${ui.solution?`<button class="btn" id="backToSol">Tilbage til den sidste vej</button>`:""}
+     <div class="nav"><button class="btn" id="exampleBtn">Prøv en eksempel-terning</button><button class="btn" id="clearAll">Ryd alle sider</button></div>
+     <p class="muted small">Terningskolen regner med en almindelig terning: gul overfor hvid, grøn overfor blå og orange overfor rød. Midterfelterne er malet på forhånd, fordi de aldrig flytter sig.</p>
+   </section></div></div>`;
+  bindStrip();
+  setupCube($("#cbox"),{scheme:"A",preview:ui.input,yaw:FACE_VIEW[f][0],pitch:FACE_VIEW[f][1],onPick:pickSticker});
+  view.cube=newCube();setFocus(-1);syncMeshes();bindViewBtn();
+  $("#prevFace").onclick=()=>setFace(ui.face-1);$("#nextFace").onclick=()=>setFace(ui.face+1);
+  $("#clearFace").onclick=()=>{const g=INPUT_FACES[ui.face];ui.input[g]=ui.input[g].map((v,i)=>i===4?v:null);saveInput();updatePaint();};
+  $("#exampleBtn").onclick=()=>{const c=newCube(),ALL="R R' R2 L L' L2 U U' U2 D D' D2 F F' F2 B B' B2".split(" ");for(let i=0;i<25;i++)applyMove(c,ALL[Math.floor(Math.random()*18)]);
+    ui.input=inputFromCube(c);ui.bad=[];ui.msgOk=true;ui.msg="Eksempel-terningen er blandet tilfældigt. Tryk på <b>Find vejen til løsningen</b>.";saveInput();updatePaint();};
+  const ca=$("#clearAll");ca.onclick=()=>{
+    if(!ui.clearArm){ui.clearArm=true;ca.textContent="Tryk igen for at rydde alt";setTimeout(()=>{ui.clearArm=false;if(ca.isConnected)ca.textContent="Ryd alle sider";},3000);return;}
+    ui.clearArm=false;ca.textContent="Ryd alle sider";ui.input=emptyInput();ui.bad=[];ui.msg="";saveInput();setFace(0);};
+  $("#findBtn").onclick=findSolution;
+  const bs=$("#backToSol");if(bs)bs.onclick=()=>go("solution");
+  updatePaint();
+}
+function setFace(n,keepView){
+  ui.face=(n+6)%6;const f=INPUT_FACES[ui.face];
+  if(!keepView)tweenView(...FACE_VIEW[f]);
+  const hb=$("#holdBadge");if(hb)hb.textContent=FACE_INFO[f][0];
+  updatePaint();
+}
+function paintCell(f,i){
+  if(i===4){toast("Midterfeltet flytter sig aldrig, så det kan ikke males.");return;}
+  ui.input[f][i]=ui.input[f][i]===ui.paint?null:ui.paint;
+  ui.bad=ui.bad.filter(b=>!(b[0]===f&&b[1]===i));saveInput();
+}
+function pickSticker(f,meshIdx){
+  const i=GRID_IDX[f][view.cube[meshIdx].home.join()];
+  paintCell(f,i);const fi=INPUT_FACES.indexOf(f);
+  if(fi!==ui.face)setFace(fi,true);else updatePaint();
+}
+function updatePaint(){
+  const f=INPUT_FACES[ui.face];view.preview=ui.input;syncMeshes();
+  $("#faceNo").textContent=`Side ${ui.face+1} af 6`;$("#faceName").textContent=FACE_INFO[f][0];$("#faceHow").textContent=FACE_INFO[f][1];
+  const bad=new Set(ui.bad.filter(b=>b[0]===f).map(b=>b[1]));
+  $("#paintGrid").innerHTML=ui.input[f].map((v,i)=>`<button class="cell${v?" filled":""}${i===4?" center":""}${bad.has(i)?" bad":""}" data-cell="${i}" style="${v?`background:${COL[v]}`:""}" aria-label="${v?DA[v]:"Ikke malet"}${i===4?", midte":""}"></button>`).join("");
+  const cnt={};for(const g of INPUT_FACES)for(const v of ui.input[g])if(v)cnt[v]=(cnt[v]||0)+1;
+  $("#palette").innerHTML=Object.keys(COLOR_FACE).map(c=>`<button class="swatch" data-paint="${c}" aria-pressed="${ui.paint===c}" aria-label="${cap(DA[c])}, ${cnt[c]||0} af 9"><span style="background:${COL[c]}"></span><small class="${(cnt[c]||0)>9?"over":""}">${cnt[c]||0}/9</small></button>`).join("");
+  $("#faceTabs").innerHTML=INPUT_FACES.map((g,i)=>`<button class="facetab${ui.bad.some(b=>b[0]===g)?" hasbad":""}" data-face="${i}" aria-current="${i===ui.face}">${miniFace(g)}<span>${FACE_INFO[g][0].split(" (")[0]}</span></button>`).join("");
+  const n=INPUT_FACES.reduce((a,g)=>a+ui.input[g].filter(Boolean).length,0);
+  $("#paintedNo").textContent=`${n} af 54 felter er malet.`;
+  const m=$("#inputMsg");m.hidden=!ui.msg;m.innerHTML=ui.msg;m.className="msg"+(ui.msgOk?" ok":"");
+  document.querySelectorAll("[data-cell]").forEach(b=>b.onclick=()=>{paintCell(f,+b.dataset.cell);updatePaint();});
+  document.querySelectorAll("[data-paint]").forEach(b=>b.onclick=()=>{ui.paint=b.dataset.paint;updatePaint();});
+  document.querySelectorAll("[data-face]").forEach(b=>b.onclick=()=>setFace(+b.dataset.face));
+}
+function findSolution(){
+  const r=cubeFromInput(ui.input);
+  if(r.errors.length){
+    ui.bad=r.bad;ui.msgOk=false;
+    ui.msg=`<b>Noget passer ikke helt.</b><ul>${[...new Set(r.errors)].slice(0,4).map(e=>`<li>${e}</li>`).join("")}</ul>${r.bad.length?"Felterne med rød kant skal tjekkes.":""}`;
+    if(r.bad.length){const i=INPUT_FACES.indexOf(r.bad[0][0]);if(i!==ui.face)return setFace(i);}
+    return updatePaint();
+  }
+  ui.bad=[];ui.msgOk=true;ui.msg="Tænker …";updatePaint();
+  setTimeout(()=>{
+    const plan=solvePlan(r.cube);
+    if(!plan.ok){ui.msgOk=false;ui.msg="<b>Terningen kan ikke løses, som den er malet.</b> Alle brikker findes, men én af dem er malet forkert. Måske er to felter byttet om, eller terningen har engang været skilt ad og er samlet forkert. Tjek siderne en gang til mod jeres terning.";return updatePaint();}
+    if(!plan.groups.length){ui.msgOk=true;ui.msg="<b>Jeres terning er allerede løst!</b> Bland den og prøv igen.";updatePaint();return confetti();}
+    ui.solution=buildSolution(r.cube,plan);ui.msg="";go("solution");
+  },30);
+}
+function buildSolution(cube,plan){
+  const steps=[],chapters=[];
+  for(const g of plan.groups){
+    let ch=chapters[chapters.length-1];if(!ch||ch.lesson!==g.lesson){ch={lesson:g.lesson,from:null,to:0};chapters.push(ch);}
+    steps.push({label:`${g.label}: ${g.steps.map(s=>s.label).join(" → ")}`,alg:g.steps.map(s=>s.alg).join(" "),chapter:chapters.length-1,focus:g.focus});
+  }
+  let n=0;for(const s of steps){const ch=chapters[s.chapter];if(ch.from===null)ch.from=n;n+=parseAlg(s.alg).length;ch.to=n;}
+  return{start:cloneCube(cube),steps,chapters,idx:0};
+}
+
+// ---------- Jeres vej til en løst terning ----------
+function renderSolution(){
+  const S=ui.solution;if(!S)return go("mycube");
+  const first=S.chapters[0].lesson,total=S.chapters[S.chapters.length-1].to;
+  $("#app").innerHTML=`<div class="wrap"><nav class="steps" id="steps" aria-label="Trin">${stepsStrip()}</nav>
+  <div class="lesson">
+   <section class="stage">${stageHtml("Gul op · grøn mod dig",false)}${playerHtml()}</section>
+   <section class="text">
+     <span class="eyebrow">Jeres terning</span>
+     <h2>Vejen til en løst terning</h2>
+     <p>${first>1?`Trin 1–${first-1} er allerede klaret. Jeres terning er nået til <b>trin ${first}: ${esc(LESSONS[first].title.toLowerCase())}</b>.`:`Jeres terning starter ved <b>trin 1: den hvide blomst</b>.`} Vejen er ${total} træk lang. Gør det samme på jeres terning, træk for træk, og hold den, som det står øverst i billedet.</p>
+     <div class="tip" id="solNow"></div>
+     <ol class="chapters" id="chapters"></ol>
+     <div class="nav"><button class="btn" id="editCube">Ret farverne</button><button class="btn" id="lessonLink">Se lektionen til dette trin</button></div>
+   </section></div></div>`;
+  bindStrip();bindPlayer();bindViewBtn();
+  $("#chapters").onclick=e=>{const b=e.target.closest("[data-jump]");if(b)jumpTo(+b.dataset.jump);};
+  $("#editCube").onclick=()=>go("mycube");
+  $("#lessonLink").onclick=()=>{
+    if(!ui.who){toast("Vælg først, hvem der øver. Så kan du se lektionerne.");return go("home");}
+    ui.lesson=S.chapters[player.steps[curStep()].chapter].lesson;ui.caseIdx=0;go("lesson");};
+  setupCube($("#cbox"),{scheme:"A",mode:"all",pitch:0.45});
+  setPlayer(S.start,S.steps,S.idx);
+}
+function renderSolutionSide(){
+  const S=ui.solution,box=$("#solNow");if(!S||!box)return;S.idx=player.idx;
+  const st=player.steps[curStep()],ch=S.chapters[st.chapter],done=player.idx>=player.flat.length;
+  box.innerHTML=done?`<b>Jeres terning er løst!</b> Ser jeres rigtige terning anderledes ud, så tryk på Ret farverne og mal den ind igen.`
+    :`<b>Lige nu: trin ${ch.lesson}, ${esc(LESSONS[ch.lesson].title.toLowerCase())}</b><br>${esc(st.label)}`;
+  $("#chapters").innerHTML=S.chapters.map(c=>{const state=player.idx>=c.to?"done":player.idx>=c.from?"now":"todo";
+    return`<li><button data-jump="${c.from}" class="${state}"><span class="ci">${state==="done"?"✓":c.lesson}</span><span><b>${esc(LESSONS[c.lesson].title)}</b><small>${c.to-c.from} træk${state==="now"?" · I er her":""}</small></span></button></li>`;}).join("");
+}
+
+// ---------- Konfetti ----------
+function confetti(){
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches){toast("Fantastisk!");return;}
+  const c=$("#confetti");c.hidden=false;const x=c.getContext("2d");c.width=innerWidth;c.height=innerHeight;
+  const cols=Object.values(COL).filter(v=>v!==COL.grey&&v!==COL.blank);
+  const ps=Array.from({length:120},()=>({x:innerWidth/2,y:innerHeight*0.35,vx:(Math.random()-.5)*14,vy:-Math.random()*12-4,s:6+Math.random()*8,r:Math.random()*6,vr:(Math.random()-.5)*.3,c:cols[Math.floor(Math.random()*cols.length)]}));
+  const t0=performance.now();
+  (function f(now){x.clearRect(0,0,c.width,c.height);for(const p of ps){p.vy+=.35;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;x.save();x.translate(p.x,p.y);x.rotate(p.r);x.fillStyle=p.c;x.fillRect(-p.s/2,-p.s/2,p.s,p.s);x.restore();}
+    if(now-t0<2600)requestAnimationFrame(f);else{x.clearRect(0,0,c.width,c.height);c.hidden=true;}})(t0);
+  toast("Du er en terningmester!");
+}
+
+$("#homeBtn").onclick=()=>{ui.view="home";stopPlay();render();};
+render();initStore();
+</script>
+
+</body>
+</html>
