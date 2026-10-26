@@ -181,6 +181,24 @@ h1,h2,h3{font-family:var(--f-display);line-height:1.1;margin:0;text-wrap:balance
 .chapters .done{opacity:.6}
 .chapters .done .ci{background:var(--good);color:#fff}
 .chapters .now{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+/* træneren i "Min terning": spørgsmål, svar og forklaring */
+.coach{display:flex;flex-direction:column;gap:10px;background:color-mix(in srgb,var(--accent) 7%,var(--surface));border:2px solid color-mix(in srgb,var(--accent) 35%,var(--line));border-radius:16px;padding:14px 16px}
+.coach p{margin:0;max-width:62ch}
+.coach h3{font-size:24px}
+.coach .eyebrow{font-family:var(--f-mono);font-size:13px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.coach .q{font-family:var(--f-display);font-size:22px;font-weight:800;line-height:1.2}
+.coach.ask{border-color:var(--focus);background:color-mix(in srgb,var(--focus) 7%,var(--surface))}
+.coach.ms{border-color:var(--star);background:color-mix(in srgb,var(--star) 12%,var(--surface))}
+.coach .done{font-weight:700;color:var(--good)}
+.coach details summary{cursor:pointer;font-weight:700;min-height:32px}
+.coach details p{margin-top:6px}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opts .btn{flex:1 1 150px;justify-content:center}
+.fb{border-radius:10px;padding:8px 12px;background:color-mix(in srgb,var(--good) 13%,var(--surface))}
+.fb.no{background:color-mix(in srgb,var(--bad) 11%,var(--surface))}
+.canvasbox.picking .draghint{color:var(--focus);font-weight:700}
+.coach-a{display:none}
+@media (max-width:860px){.coach-a{display:block}.coach-b{display:none}}
 .foot{color:var(--muted);font-size:14px;text-align:center}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:700;z-index:20}
 #confetti{position:fixed;inset:0;pointer-events:none;z-index:30;width:100%;height:100%}
@@ -302,7 +320,7 @@ function rotTo(c,i,target){for(const r of [null,...M_Y]){const t=cloneCube(c);if
 
 function solvePlan(start){
   const c=cloneCube(start),groups=[];
-  const push=(lesson,label,path,focus)=>groups.push({lesson,label,steps:path.map(m=>({label:m.label,alg:m.moves.join(" ")})),focus:focus||null});
+  const push=(lesson,label,path,focus,pop)=>groups.push({lesson,label,steps:path.map(m=>({label:m.label,alg:m.moves.join(" "),g:m.g})),focus:focus||null,pop:!!pop});
   const fail=lesson=>({ok:false,lesson,groups});
   function units(set,fn){const cm=centers(c);return new Set(c.map((_,i)=>i).filter(i=>SETS[set](c[i])&&fn(c[i],cm)));}
   function unitStage(lesson,set,fn,keep,macros,depth,name,pop,fixed){
@@ -312,7 +330,7 @@ function solvePlan(start){
       const path=search(c,macros,depth,goal);
       if(path){const after=units(set,fn);const i=[...after].find(i=>!before.has(i));
         push(lesson,`${name} ${after.size} af 4`,path,i===undefined?null:{i,fixed:fixed?c[i].pos.slice():null});continue;}
-      const r=pop&&pop();if(!r)return false;push(lesson,r.label,r.path,null);
+      const r=pop&&pop();if(!r)return false;push(lesson,r.label,r.path,null,true);
     }
     return false;
   }
@@ -392,6 +410,117 @@ function cubeFromInput(inp){
     cube.push({home,pos,ax:[0,1,2].map(i=>[M[0][i],M[1][i],M[2][i]])});
   }
   return errors.length?{errors,bad}:{cube,errors:[],bad:[]};
+}
+
+// ---------- Forklaringer: hvorfor gør vi det næste skridt? ----------
+// Læser samme stilling som løseren, så forklaring, spørgsmål og svar passer med jeres terning
+const DIRWORD={"1,0,0":"til højre","-1,0,0":"til venstre","0,1,0":"opad","0,-1,0":"nedad","0,0,1":"mod dig","0,0,-1":"væk fra dig"};
+const ucf=s=>s[0].toUpperCase()+s.slice(1);
+const gang=n=>n===1?"én gang":`${n} gange`;
+const colRank=c=>c==="white"?0:c==="yellow"?1:2;
+const pieceCols=p=>stk(p).map(s=>SCHEMES.A[s.h]).sort((a,b)=>colRank(a)-colRank(b));
+function pieceName(p){const cs=pieceCols(p);return(cs.length===2?"den ":"det ")+cs.map((c,i)=>i<cs.length-1?DA[c]:DA_PL[c]).join("-")+(cs.length===2?" kant":" hjørne");}
+const stickerOf=(p,col)=>stk(p).find(s=>SCHEMES.A[s.h]===col);
+const colorOfCenterAt=(c,d)=>{const cm=centers(c);return SCHEMES.A[Object.keys(cm).find(k=>eqv(cm[k],d))];};
+const idxWhere=(c,fn)=>{const cm=centers(c);return c.map((p,i)=>fn(p,cm)?i:-1).filter(i=>i>=0);};
+function simTo(before,steps,j){const c=cloneCube(before);for(let k=0;k<j;k++)for(const m of parseAlg(steps[k].alg))applyMove(c,m);return c;}
+const dances=s=>parseAlg(s.alg).length/4;
+const AIMS=["","Fire hvide kanter rundt om den gule midte, ligesom en blomst.","Et hvidt kryds i bunden, hvor hver kant passer med midten på siden.","Hele den hvide side er færdig, og det nederste lag passer hele vejen rundt.","De to nederste lag er færdige.","Et gult kryds på toppen. Hjørnerne er ligegyldige lige nu.","De gule kanter passer også med midterne på siderne.","Alle gule hjørner står på deres rigtige plads.","Alle gule hjørner vender rigtigt, og terningen er løst!"];
+
+function coachFor(before,g){
+  const S=g.steps,has=k=>S.some(s=>s.g===k),i=g.focus?g.focus.i:-1,p=i>=0?before[i]:null;
+  const plain={pick:null,choice:null,caseIdx:null};
+  switch(g.lesson){
+  case 1:{
+    if(!p)break;
+    const layer=p.pos[1],firstU=S[0].g==="u";
+    const where=layer===1?"sidder i toppen, men det hvide vender ud til siden":layer===0?"sidder i midterlaget":"sidder nede i bunden";
+    return{why:`<b>${ucf(pieceName(p))}</b> ${where}. `+(firstU?"Pladsen lige over den er allerede optaget af et hvidt blad. Derfor drejer vi toppen først, så vi ikke skubber bladet væk. ":"")
+        +(layer===1?"Vi drejer den ud til siden og løfter den op igen, så det hvide vender opad.":"Så drejer vi den side, kanten sidder på, til det hvide kommer op i toppen."),
+      pick:{ask:"Tryk på en hvid kant, der ikke er i blomsten endnu.",what:"en hvid kant, der ikke er i blomsten endnu",accept:idxWhere(before,(q,cm)=>SETS.wE(q)&&!isPetal(q,cm)),target:i,
+        already:idxWhere(before,(q,cm)=>SETS.wE(q)&&isPetal(q,cm)),alreadyTxt:"Den er allerede i blomsten."},
+      choice:layer===1?null:{ask:"Hvad skal vi gøre først?",options:["Drej toppen først","Drej siden med kanten"],answer:firstU?0:1,rule:firstU?"Der står allerede et hvidt blad lige over kanten. Så skal toppen drejes først.":"Pladsen lige over kanten er fri. Så kan vi dreje siden med det samme."},
+      caseIdx:firstU?2:layer===0?0:1};
+  }
+  case 2:{
+    if(!p)break;
+    const o=pieceCols(p)[1],at=colorOfCenterAt(before,stickerOf(p,o).w),direct=!has("u");
+    return{why:`<b>${ucf(pieceName(p))}</b> er et blad i blomsten. Dens anden farve er ${DA[o]}. `
+        +(direct?`Den står allerede over den ${DA_PL[o]} midte, så den kan gå direkte ned: drej siden 2 gange.`
+          :`Lige nu står den ved den ${DA_PL[at]} midte. Først drejer vi toppen, til den står over den ${DA_PL[o]} midte. Så drejer vi siden 2 gange, og kanten sidder nede i krydset.`),
+      pick:{ask:"Tryk på et hvidt blad i blomsten. Det skal ned i krydset.",what:"et hvidt blad oppe i blomsten",accept:idxWhere(before,(q,cm)=>SETS.wE(q)&&isPetal(q,cm)),target:i},
+      choice:{ask:`Bladets anden farve er ${DA[o]}. Kan det gå direkte ned?`,options:["Ja, drej siden 2 gange","Nej, drej toppen først"],answer:direct?0:1,rule:direct?`Bladet står allerede over den ${DA_PL[o]} midte. Så kan det gå direkte ned.`:`Bladet står ved den ${DA_PL[at]} midte. Det skal stå over den ${DA_PL[o]} midte, før det går ned.`},
+      caseIdx:direct?0:1};
+  }
+  case 3:{
+    if(g.pop)return{...plain,why:"Et hvidt hjørne sidder nede i bunden, men forkert. Vi holder det foran til højre og laver Hjørnedansen én gang. Så kommer det op i toppen, og bagefter kan vi sætte det rigtigt ind."};
+    if(!p)break;
+    const j=S.findIndex(s=>s.label.startsWith("Hjørnedansen"));if(j<0)break;
+    const q=simTo(before,S,j)[i],k=dances(S[j]),dir=DIRWORD[stickerOf(q,"white").w.join()],top=q.pos[1]===1,[a,b]=pieceCols(p).slice(1);
+    const moves=(has("u")&&top?"Drej toppen, så hjørnet står lige over sin plads. ":"")+(has("y")?"Drej hele terningen, så pladsen er foran til højre. ":"");
+    return{why:`<b>${ucf(pieceName(p))}</b> skal ned mellem den ${DA_PL[a]} og den ${DA_PL[b]} midte. ${moves}`
+        +(top?`Når hjørnet står foran til højre, vender det hvide ${dir}. Derfor skal Hjørnedansen laves ${gang(k)}.`
+          :`Hjørnet sidder allerede på sin plads, men det er drejet forkert. Det hvide vender ${dir}, så Hjørnedansen ${gang(k)} drejer det rigtigt.`),
+      pick:{ask:"Tryk på et hvidt hjørne, der ikke sidder rigtigt endnu.",what:"et hvidt hjørne, der ikke sidder rigtigt",accept:idxWhere(before,(q,cm)=>SETS.wC(q)&&!isSolved(q,cm)),target:i},
+      choice:top?{ask:`Når hjørnet står over sin plads foran til højre, vender det hvide ${dir}. Hvor mange gange skal Hjørnedansen laves?`,options:["1 gang","3 gange","5 gange"],answer:[1,3,5].indexOf(k),rule:"Hvid til højre: 1 gang. Hvid opad: 3 gange. Hvid mod dig: 5 gange."}
+        :{ask:`Hjørnet sidder på sin plads, men det hvide vender ${dir}. Hvor mange gange skal Hjørnedansen laves?`,options:["2 gange","4 gange"],answer:[2,4].indexOf(k),rule:"Sidder hjørnet nede på sin plads: hvid til højre 2 gange, hvid mod dig 4 gange."},
+      caseIdx:top?[1,3,5].indexOf(k):null};
+  }
+  case 4:{
+    if(g.pop){const k=idxWhere(before,(q,cm)=>SETS.mE(q)&&q.pos[1]===0&&!isSolved(q,cm))[0];
+      return{...plain,why:`<b>${k===undefined?"En kant":ucf(pieceName(before[k]))}</b> sidder i midterlaget, men forkert. Vi sætter en anden kant ind på dens plads med "Kanten til højre". Så kommer den forkerte kant op i toppen, og bagefter kan vi sætte den rigtigt ind.`};}
+    if(!p)break;
+    if(p.pos[1]===0){const last=S.filter(s=>s.g==="x").pop();
+      return{...plain,why:`<b>${ucf(pieceName(p))}</b> sidder i midterlaget, men forkert. Først sætter vi en anden kant ind på dens plads. Så kommer den op i toppen. Bagefter drejer vi toppen og sætter den rigtigt ind med "${last?last.label:"Kanten til højre"}".`,caseIdx:last&&last.label==="Kanten til venstre"?1:0};}
+    const j=S.findIndex(s=>s.g==="x");if(j<0)break;
+    const q=simTo(before,S,j)[i],right=S[j].label==="Kanten til højre",side=right?"højre":"venstre";
+    const front=stk(q).find(s=>eqv(s.w,[0,0,1])),up=stk(q).find(s=>eqv(s.w,[0,1,0]));if(!front||!up)break;
+    const fc=SCHEMES.A[front.h],tc=SCHEMES.A[up.h],[a,b]=pieceCols(p);
+    const moves=(has("u")?`Drej toppen, til den ${DA_PL[fc]} side af kanten står over den ${DA_PL[fc]} midte. Nu ligner det et T. `:`Kanten står allerede over den ${DA_PL[fc]} midte og ligner et T. `)+(has("y")?"Drej hele terningen, så T'et er foran. ":"");
+    return{why:`<b>${ucf(pieceName(p))}</b> skal ned i midterlaget mellem den ${DA_PL[a]} og den ${DA_PL[b]} midte. ${moves}På toppen er kanten ${DA[tc]}. Den ${DA_PL[tc]} midte sidder til ${side}, så kanten skal til ${side}.`,
+      pick:{ask:"Tryk på en kant i toppen uden gul. Den skal ned i midterlaget.",what:"en kant i toppen uden gul",accept:idxWhere(before,q=>SETS.mE(q)&&q.pos[1]===1),target:i},
+      choice:{ask:`Når kanten står som et T foran, er den ${DA[tc]} på toppen. Skal den til højre eller til venstre?`,options:["Kanten til højre","Kanten til venstre"],answer:right?0:1,rule:"Se på kantens farve på toppen. Passer den med midten til højre, skal kanten til højre. Passer den med midten til venstre, skal den til venstre."},
+      caseIdx:right?0:1};
+  }
+  case 5:{
+    const ups=idxWhere(before,q=>SETS.yE(q)&&eqv(stickerOf(q,"yellow").w,[0,1,0])).map(k=>before[k].pos);
+    const shape=!ups.length?2:ups.length===2&&ups[0][0]+ups[1][0]===0&&ups[0][2]+ups[1][2]===0?0:1;
+    const n=S.filter(s=>s.g==="x").length,u=has("u");
+    const how=[(u?"Drej toppen, så stregen går fra venstre til højre. ":"Stregen går allerede fra venstre til højre. ")+`Lav kryds-algoritmen ${gang(n)}.`,
+      (u?"Drej toppen, så L'et peger bagud og til venstre. ":"L'et peger allerede bagud og til venstre. ")+`Lav kryds-algoritmen ${gang(n)}.`,
+      `Lav kryds-algoritmen ${gang(n)}. Så bliver prikken til et L.`][shape];
+    return{why:`Toppen viser ${["en <b>streg</b>","et <b>L</b>","en <b>prik</b>"][shape]}. Vi tæller kun de gule kanter, ikke hjørnerne. ${how}`,pick:null,
+      choice:{ask:"Se på toppen. Hvad danner de gule kanter? Tæl ikke hjørnerne med.",options:["En prik","Et L","En streg"],answer:[2,1,0][shape],rule:"Prik: ingen gule kanter. L: to kanter ved siden af hinanden. Streg: to kanter overfor hinanden."},
+      caseIdx:shape};
+  }
+  case 6:{const n=S.filter(s=>s.g==="x").length;
+    return{...plain,why:`Nu skal de gule kanter også passe med siderne. Drej toppen, til mindst to kanter passer med midten på siden. Passer to kanter ved siden af hinanden, holder vi dem bagved og til højre. Så laver vi kant-algoritmen${n>1?` ${n} gange`:""}.`,caseIdx:0};}
+  case 7:{
+    const anchors=idxWhere(before,(q,cm)=>SETS.yC(q)&&eqv(q.pos,homePos(q,cm))),n=S.filter(s=>s.g==="x").length;
+    if(!anchors.length)return{...plain,why:`Intet gult hjørne står på sin rigtige plads endnu. Så laver vi hjørne-rundturen én gang fra hvor som helst. Bagefter står der et hjørne rigtigt${n>1?", og så gør vi det igen med det hjørne foran til højre":""}.`,caseIdx:n>1?1:0};
+    const mid=simTo(before,S,S.findIndex(s=>s.g==="x")),a=anchors.find(k=>eqv(mid[k].pos,[1,1,1]))??anchors[0];
+    return{why:`<b>${ucf(pieceName(before[a]))}</b> står allerede på sin rigtige plads. Dets tre farver passer med de tre midter ved siden af. ${has("y")?"Drej hele terningen, så det står foran til højre. ":"Det står foran til højre. "}Lav hjørne-rundturen ${gang(n)}. De tre andre hjørner går rundt, mens det her bliver stående.`,
+      pick:{ask:"Tryk på et gult hjørne, der allerede står på sin rigtige plads.",what:"et gult hjørne, hvor alle tre farver passer med midterne ved siden af",accept:anchors,target:a},
+      choice:null,caseIdx:n>1?1:0,focusI:a};
+  }
+  case 8:{
+    if(S[0].g==="z")return{...plain,why:"Nu vender vi terningen, så gul er <b>nedad</b>. Fra nu af drejer vi aldrig hele terningen. Kun højre side, toppen og bunden."};
+    if(g.label==="Næste hjørne frem")return{...plain,why:"Hjørnet foran til højre er færdigt. Drej kun bunden, så det næste hjørne, hvor gul ikke vender nedad, kommer frem til højre."};
+    if(g.label==="Bunden på plads")return{...plain,why:"Nu vender alt det gule nedad. Drej bunden, så siderne passer, og terningen er løst!"};
+    if(!p)break;
+    const k=dances(S[0]),dir=DIRWORD[stickerOf(p,"yellow").w.join()];
+    return{...plain,why:`På hjørnet foran til højre nederst vender gul ${dir}. Lav Hjørnedansen, til gul vender nedad. Det tager ${gang(k)}. Toppen bliver rodet undervejs. Det er meningen, for den bliver hel igen.`,
+      choice:{ask:`Gul vender ${dir} på hjørnet foran til højre nederst. Hvor mange gange skal Hjørnedansen laves?`,options:["2 gange","4 gange"],answer:[2,4].indexOf(k),rule:"Gul til højre: 2 gange. Gul mod dig: 4 gange."}};
+  }
+  }
+  return{...plain,why:g.label+"."};
+}
+function coachForSafe(before,g){
+  const c=coachFor(before,g);
+  if(c.choice&&c.choice.answer<0)c.choice=null;
+  if(c.pick&&!c.pick.accept.includes(c.pick.target))c.pick=null;
+  if(c.caseIdx!=null&&c.caseIdx<0)c.caseIdx=null;
+  return c;
 }
 
 // ---------- Træk på dansk + ikon ----------
@@ -770,6 +899,8 @@ const curStep=()=>player.stepOf[Math.min(player.idx,player.flat.length-1)];
 function updateFocus(){
   updateHold();
   const s=player.steps[curStep()];
+  // mens der gættes på brikken, må markeringen ikke afsløre svaret
+  if(ui.view==="solution"){const st=ensureState();if(st&&(st.phase==="pick"||st.phase==="milestone"))return setFocus(-1);}
   if(!s||!s.focus||!view.cube[s.focus.i])return setFocus(-1);
   setFocus(s.focus.i,s.focus.fixed||homePos(view.cube[s.focus.i],centers(view.cube)));
 }
@@ -793,6 +924,14 @@ function loadCase(){
 function renderTiles(){
   const box=$("#tiles");if(!box)return;
   const cs=curStep(),chap=player.steps[cs]?player.steps[cs].chapter:0;let n=0;
+  if(ui.view==="solution"&&gated()){
+    const ms=ensureState().phase==="milestone";
+    box.innerHTML="";$("#nowMove").innerHTML=`<span style="color:var(--muted);text-align:center">${ms?"Tryk på <b>Videre</b>, når I er klar til næste trin.":"Svar på spørgsmålet. Så kommer trækkene."}</span>`;
+    $("#playBtn").innerHTML=`<svg viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg>${player.idx?"Fortsæt":"Afspil"}`;
+    $("#playBtn").disabled=$("#nextBtn").disabled=true;$("#prevBtn").disabled=player.idx===0;
+    return renderSolutionSide();
+  }
+  $("#playBtn").disabled=false;
   box.innerHTML=player.steps.map(s=>{const ms=parseAlg(s.alg),start=n;n+=ms.length;if(s.chapter!==chap)return"";
     return`<div class="group"><span class="gl">${esc(s.label)}</span><div class="trow">${ms.map((m,j)=>{const i=start+j;return`<div class="tile ${i<player.idx?"done":""} ${i===player.idx?"cur":""}">${moveIcon(m)}<span>${words(m)}</span><span class="k">${m}</span></div>`;}).join("")}</div></div>`;}).join("");
   const nm=$("#nowMove");
@@ -804,6 +943,7 @@ function renderTiles(){
 }
 async function stepFwd(){
   if(view.busy||player.idx>=player.flat.length)return;
+  if(ui.view==="solution"&&gated())return;
   const m=player.flat[player.idx];player.idx++;renderTiles();await animateMove(m,durMs());updateFocus();
   if(ui.view==="solution"&&player.idx===player.flat.length&&!player.playing)confetti();
 }
@@ -816,6 +956,7 @@ async function togglePlay(){
   player.playing=true;const tok=++player.token;renderTiles();
   await new Promise(r=>setTimeout(r,250));
   while(player.playing&&player.token===tok&&player.idx<player.flat.length&&view.rig){
+    if(ui.view==="solution"&&gated())break;
     await stepFwd();
     const a=player.stepOf[player.idx-1],b=player.stepOf[player.idx];
     await new Promise(r=>setTimeout(r,(ui.speed==="calm"?220:90)+(a!==b?500:0)));
@@ -921,13 +1062,17 @@ function findSolution(){
   },30);
 }
 function buildSolution(cube,plan){
-  const steps=[],chapters=[];
+  const steps=[],chapters=[],sim=cloneCube(cube);
   for(const g of plan.groups){
-    let ch=chapters[chapters.length-1];if(!ch||ch.lesson!==g.lesson){ch={lesson:g.lesson,from:null,to:0};chapters.push(ch);}
-    steps.push({label:`${g.label}: ${g.steps.map(s=>s.label).join(" → ")}`,alg:g.steps.map(s=>s.alg).join(" "),chapter:chapters.length-1,focus:g.focus});
+    let ch=chapters[chapters.length-1];if(!ch||ch.lesson!==g.lesson){ch={lesson:g.lesson,from:null,to:0,fromStep:steps.length,firstQuiz:-1};chapters.push(ch);}
+    const coach=coachForSafe(cloneCube(sim),g);
+    if(ch.firstQuiz<0&&(coach.pick||coach.choice))ch.firstQuiz=steps.length;
+    steps.push({label:`${g.label}: ${g.steps.map(s=>s.label).join(" → ")}`,alg:g.steps.map(s=>s.alg).join(" "),chapter:chapters.length-1,lesson:g.lesson,coach,
+      focus:g.focus||(coach.focusI!=null?{i:coach.focusI,fixed:null}:null)});
+    for(const s of g.steps)for(const m of parseAlg(s.alg))applyMove(sim,m);
   }
-  let n=0;for(const s of steps){const ch=chapters[s.chapter];if(ch.from===null)ch.from=n;n+=parseAlg(s.alg).length;ch.to=n;}
-  return{start:cloneCube(cube),steps,chapters,idx:0};
+  let n=0;const starts=[];for(const s of steps){const ch=chapters[s.chapter];starts.push(n);if(ch.from===null)ch.from=n;n+=parseAlg(s.alg).length;ch.to=n;}
+  return{start:cloneCube(cube),steps,chapters,starts,state:[],seen:new Set(),idx:0};
 }
 
 // ---------- Jeres vej til en løst terning ----------
@@ -936,11 +1081,13 @@ function renderSolution(){
   const first=S.chapters[0].lesson,total=S.chapters[S.chapters.length-1].to;
   $("#app").innerHTML=`<div class="wrap"><nav class="steps" id="steps" aria-label="Trin">${stepsStrip()}</nav>
   <div class="lesson">
-   <section class="stage">${stageHtml("Gul op · grøn mod dig",false)}${playerHtml()}</section>
+   <section class="stage">${stageHtml("Gul op · grøn mod dig",false)}<div class="coach-a" id="coachA" hidden></div>${playerHtml()}</section>
    <section class="text">
      <span class="eyebrow">Jeres terning</span>
      <h2>Vejen til en løst terning</h2>
      <p>${first>1?`Trin 1–${first-1} er allerede klaret. Jeres terning er nået til <b>trin ${first}: ${esc(LESSONS[first].title.toLowerCase())}</b>.`:`Jeres terning starter ved <b>trin 1: den hvide blomst</b>.`} Vejen er ${total} træk lang. Gør det samme på jeres terning, træk for træk, og hold den, som det står øverst i billedet.</p>
+     <div class="seg" role="group" aria-label="Måde"><button data-solmode="learn" aria-pressed="${ui.solMode==="learn"}">Øv mig: gæt først</button><button data-solmode="show" aria-pressed="${ui.solMode==="show"}">Vis bare vejen</button></div>
+     <div class="coach-b" id="coachB" hidden></div>
      <div class="tip" id="solNow"></div>
      <ol class="chapters" id="chapters"></ol>
      <div class="nav"><button class="btn" id="editCube">Ret farverne</button><button class="btn" id="lessonLink">Se lektionen til dette trin</button></div>
@@ -951,16 +1098,123 @@ function renderSolution(){
   $("#lessonLink").onclick=()=>{
     if(!ui.who){toast("Vælg først, hvem der øver. Så kan du se lektionerne.");return go("home");}
     ui.lesson=S.chapters[player.steps[curStep()].chapter].lesson;ui.caseIdx=0;go("lesson");};
-  setupCube($("#cbox"),{scheme:"A",mode:"all",pitch:0.45});
+  for(const id of ["coachA","coachB"])$("#"+id).onclick=e=>{const b=e.target.closest("[data-coach]");if(b)coachAction(b.dataset.coach,+b.dataset.i);};
+  document.querySelectorAll("[data-solmode]").forEach(b=>b.onclick=()=>{
+    ui.solMode=b.dataset.solmode;ls.set("ts-solmode",ui.solMode);
+    document.querySelectorAll("[data-solmode]").forEach(x=>x.setAttribute("aria-pressed",x===b));
+    // skridtet, vi står ved, starter forfra i den nye måde, hvis der ikke er svaret endnu
+    const si=curStep(),st=S.state[si];if(st&&!st.quizzed&&player.idx===S.starts[si])delete S.state[si];
+    updateFocus();renderTiles();});
+  setupCube($("#cbox"),{scheme:"A",mode:"all",pitch:0.45,onPick:coachPick});
   setPlayer(S.start,S.steps,S.idx);
 }
 function renderSolutionSide(){
   const S=ui.solution,box=$("#solNow");if(!S||!box)return;S.idx=player.idx;
   const st=player.steps[curStep()],ch=S.chapters[st.chapter],done=player.idx>=player.flat.length;
   box.innerHTML=done?`<b>Jeres terning er løst!</b> Ser jeres rigtige terning anderledes ud, så tryk på Ret farverne og mal den ind igen.`
-    :`<b>Lige nu: trin ${ch.lesson}, ${esc(LESSONS[ch.lesson].title.toLowerCase())}</b><br>${esc(st.label)}`;
+    :`<b>Lige nu: trin ${ch.lesson}, ${esc(LESSONS[ch.lesson].title.toLowerCase())}</b>${gated()?"":`<br>${esc(st.label)}`}`;
   $("#chapters").innerHTML=S.chapters.map(c=>{const state=player.idx>=c.to?"done":player.idx>=c.from?"now":"todo";
     return`<li><button data-jump="${c.from}" class="${state}"><span class="ci">${state==="done"?"✓":c.lesson}</span><span><b>${esc(LESSONS[c.lesson].title)}</b><small>${c.to-c.from} træk${state==="now"?" · I er her":""}</small></span></button></li>`;}).join("");
+  renderCoach();
+}
+
+// ---------- Træneren: gæt først, forstå hvorfor, mindre hjælp når det sidder ----------
+// Hvert skridt har en tilstand: milestone (nyt trin) → pick (find brikken) → choose (vælg greb) → watch (se trækkene).
+// Første spørgsmål i et trin vises som eksempel. Tre rigtige i træk i et trin, så stopper spørgsmålene der.
+const MASTER=3;
+ui.solMode=ls.get("ts-solmode")==="show"?"show":"learn";
+function streaks(){try{return JSON.parse(ls.get("ts-coach")||"{}")||{};}catch{return{};}}
+const getStreak=l=>{const s=streaks()[ui.who||"x"];return s&&s[l]||0;};
+function setStreak(l,n){const all=streaks(),k=ui.who||"x";all[k]={...all[k],[l]:n};ls.set("ts-coach",JSON.stringify(all));}
+function quizState(si){
+  const S=ui.solution,st=S.steps[si],c=st.coach;
+  if(ui.solMode!=="learn"||!(c.pick||c.choice))return{phase:"watch"};
+  const n=getStreak(st.lesson);
+  if(n>=MASTER)return{phase:"watch",mastered:true};
+  if(n===0&&S.chapters[st.chapter].firstQuiz===si)return{phase:"watch",worked:true};
+  return{phase:c.pick?"pick":"choose",tries:0,clean:true,fb:[]};
+}
+function ensureState(){
+  const S=ui.solution;if(!S||ui.view!=="solution"||player.idx>=player.flat.length)return null;
+  const si=curStep();
+  for(let k=0;k<si;k++)if(!S.state[k])S.state[k]={phase:"watch"};
+  if(!S.state[si]){
+    const ch=S.steps[si].chapter;
+    if(player.idx!==S.starts[si])S.state[si]={phase:"watch"};
+    else if(ui.solMode==="learn"&&S.chapters[ch].fromStep===si&&!S.seen.has(ch))S.state[si]={phase:"milestone"};
+    else S.state[si]=quizState(si);
+  }
+  return S.state[si];
+}
+const gated=()=>{const s=ensureState();return!!s&&s.phase!=="watch";};
+function finishQuiz(si){
+  const S=ui.solution,st=S.state[si],l=S.steps[si].lesson;
+  st.phase="watch";st.quizzed=true;
+  const n=st.clean?getStreak(l)+1:0;setStreak(l,n);
+  if(n===MASTER)toast(`Flot! Du kan trin ${l}. Nu viser vi bare vejen der.`);
+}
+function nextPhase(si){
+  const S=ui.solution,st=S.state[si];
+  if(st.phase==="pick"&&S.steps[si].coach.choice)st.phase="choose";else finishQuiz(si);
+  updateFocus();renderTiles();
+}
+function coachPick(f,idx){
+  const S=ui.solution,st=ensureState();if(!st||st.phase!=="pick")return;
+  const si=curStep(),pk=S.steps[si].coach.pick,p=view.cube[idx];
+  if(pk.accept.includes(idx)){
+    st.fb=[{ok:true,html:(idx===pk.target?"<b>Ja, den!</b>":"<b>Ja, den kan også bruges.</b> Vi tager den med lyserødt omkring først.")+(st.tries?" Godt, at du prøvede igen.":"")}];
+    return nextPhase(si);
+  }
+  st.tries++;st.clean=false;
+  const why=kind(p.home)===1?"Det er en midte, og midterne flytter sig aldrig."
+    :pk.already&&pk.already.includes(idx)?pk.alreadyTxt
+    :isSolved(p,centers(view.cube))?"Den sidder allerede rigtigt.":"Den passer ikke her.";
+  if(st.tries<2){st.fb=[{ok:false,html:`<b>Ikke den.</b> ${why} Vi leder efter ${pk.what}. Prøv igen.`}];return renderCoach();}
+  st.fb=[{ok:false,html:`<b>Det var den med lyserødt omkring.</b> Vi leder efter ${pk.what}.`}];
+  nextPhase(si);
+}
+function coachChoose(i){
+  const S=ui.solution,st=ensureState();if(!st||st.phase!=="choose")return;
+  const si=curStep(),ch=S.steps[si].coach.choice,ok=i===ch.answer;
+  if(!ok)st.clean=false;
+  st.fb.push(ok?{ok:true,html:`<b>Rigtigt!</b> ${esc(ch.options[i])}.`}:{ok:false,html:`<b>Ikke helt.</b> Svaret er: ${esc(ch.options[ch.answer])}. ${ch.rule}`});
+  nextPhase(si);
+}
+function coachAction(a,i){
+  const S=ui.solution;if(!S||player.idx>=player.flat.length)return;
+  const si=curStep(),step=S.steps[si];
+  if(a==="opt")return coachChoose(i);
+  if(a==="go"){S.seen.add(step.chapter);S.state[si]=quizState(si);updateFocus();return renderTiles();}
+  if(a==="again"){setStreak(step.lesson,1);
+    if(player.idx===S.starts[si]){S.state[si]=quizState(si);updateFocus();renderTiles();}
+    else toast("Næste skridt i det her trin bliver et spørgsmål.");return;}
+  if(a==="lesson"){
+    if(!ui.who){toast("Vælg først, hvem der øver. Så kan du se lektionerne.");return go("home");}
+    ui.lesson=step.lesson;ui.caseIdx=step.coach.caseIdx??0;go("lesson");}
+}
+const fbHtml=st=>(st.fb||[]).map(f=>`<p class="fb ${f.ok?"ok":"no"}">${f.html}</p>`).join("");
+function coachHtml(){
+  const S=ui.solution,st=ensureState();if(!st)return"";
+  const si=curStep(),step=S.steps[si],c=step.coach,L=LESSONS[step.lesson];
+  if(st.phase==="milestone"){
+    const prev=step.chapter>0?S.chapters[step.chapter-1]:null;
+    return`<div class="coach ms">${prev?`<p class="done">✓ Trin ${prev.lesson} er klaret: ${esc(LESSONS[prev.lesson].title.toLowerCase())}!</p>`:`<p class="done">Jeres terning er nået til trin ${step.lesson}.</p>`}
+      <span class="eyebrow">Næste mål · trin ${step.lesson}</span><h3>${esc(L.title)}</h3><p>${AIMS[step.lesson]}</p>
+      <div class="controls left"><button class="btn primary" data-coach="go">Videre</button><button class="btn" data-coach="lesson">Se lektionen først</button></div></div>`;
+  }
+  if(st.phase==="pick")return`<div class="coach ask"><span class="eyebrow">Gæt først</span><p class="q">Hvilken brik skal vi flytte nu?</p><p>${c.pick.ask} Tryk på den på 3D-terningen. Du kan dreje terningen for at se de andre sider.</p>${fbHtml(st)}</div>`;
+  if(st.phase==="choose")return`<div class="coach ask"><span class="eyebrow">Gæt først</span>${fbHtml(st)}<p class="q">${c.choice.ask}</p><div class="opts">${c.choice.options.map((o,i)=>`<button class="btn" data-coach="opt" data-i="${i}">${esc(o)}</button>`).join("")}</div></div>`;
+  const eyebrow=st.mastered?`Du kan trin ${step.lesson}`:st.worked?"Se hvordan":"Hvorfor?";
+  const why=st.mastered?`<details><summary>Hvorfor?</summary><p>${c.why}</p></details>`:`<p>${c.why}</p>`;
+  const btns=(c.caseIdx!=null?`<button class="btn" data-coach="lesson">Se situationen i lektionen</button>`:"")+(st.mastered?`<button class="btn" data-coach="again">Spørg mig igen</button>`:"");
+  return`<div class="coach"><span class="eyebrow">${eyebrow}</span>${fbHtml(st)}${why}
+    <p class="muted small">${st.worked?"Næste gang er det dig, der gætter. ":""}Gør det samme på jeres terning: tryk på Afspil eller Ét træk.</p>${btns?`<div class="controls left">${btns}</div>`:""}</div>`;
+}
+function renderCoach(){
+  const html=ui.view==="solution"?coachHtml():"";
+  for(const id of ["coachA","coachB"]){const b=$("#"+id);if(b){b.innerHTML=html;b.hidden=!html;}}
+  const st=ensureState(),box=$("#cbox"),picking=!!st&&st.phase==="pick";
+  if(box){box.classList.toggle("picking",picking);const h=box.querySelector(".draghint");if(h)h.textContent=picking?"Tryk på brikken · træk for at dreje":"Træk for at se terningen fra andre sider";}
 }
 
 // ---------- Konfetti ----------
